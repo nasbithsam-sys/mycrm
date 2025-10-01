@@ -1,0 +1,732 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - AccBoost CRM{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div class="row align-items-center">
+    <div class="col">
+      <h1 class="page-title">Dashboard</h1>
+      <div class="text-muted mt-1">Last updated: <span id="update-time">{{ now.strftime('%H:%M') if now else 'Just now' }}</span></div>
+    </div>
+    <div class="col-auto">
+      <div class="btn-list">
+        <a href="{{ url_for('add_lead') }}" class="btn btn-primary">
+          <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+            <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+            <path d="M12 5l0 14" />
+            <path d="M5 12l14 0" />
+          </svg>
+          Add New Lead
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% if is_admin %}
+<!-- ADMIN DASHBOARD -->
+<div class="row row-deck mb-4">
+    <div class="col-sm-6 col-lg-3">
+        <div class="card card-sm kpi-card">
+            <div class="card-body">
+                <div class="row align-items-center">
+                    <div class="col-auto">
+                        <span class="bg-primary text-white avatar">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                                <path d="M9 7m-4 0a4 4 0 1 0 8 0a4 4 0 1 0 -8 0" />
+                                <path d="M3 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" />
+                                <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                                <path d="M21 21v-2a4 4 0 0 0 -3 -3.85" />
+                            </svg>
+                        </span>
+                    </div>
+                    <div class="col">
+                        <div class="font-weight-medium">TOTAL LEADS</div>
+                        <div class="h2 mt-2 mb-0 text-primary">{{ total_leads }}</div>
+                        <div class="text-muted">All time</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+        <div class="card card-sm kpi-card">
+            <div class="card-body">
+                <div class="row align-items-center">
+                    <div class="col-auto">
+                        <span class="bg-success text-white avatar">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                                <path d="M8 7a4 4 0 1 0 8 0a4 4 0 0 0 -8 0" />
+                                <path d="M6 21v-2a4 4 0 0 1 4 -4h4" />
+                                <path d="M15 19l2 2l4 -4" />
+                            </svg>
+                        </span>
+                    </div>
+                    <div class="col">
+                        <div class="font-weight-medium">MY LEADS</div>
+                        <div class="h2 mt-2 mb-0 text-success">{{ my_leads }}</div>
+                        <div class="text-muted">Assigned to you</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+        <div class="card card-sm kpi-card">
+            <div class="card-body">
+                <div class="row align-items-center">
+                    <div class="col-auto">
+                        <span class="bg-warning text-white avatar">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                                <path d="M12 12m-9 0a9 9 0 1 0 18 0a9 9 0 1 0 -18 0" />
+                                <path d="M9 12l6 0" />
+                                <path d="M12 9l0 6" />
+                            </svg>
+                        </span>
+                    </div>
+                    <div class="col">
+                        <div class="font-weight-medium">NEW TODAY</div>
+                        <div class="h2 mt-2 mb-0 text-warning">{{ new_today }}</div>
+                        <div class="text-muted">Today's progress</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+        <div class="card card-sm kpi-card">
+            <div class="card-body">
+                <div class="row align-items-center">
+                    <div class="col-auto">
+                        <span class="bg-info text-white avatar">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                                <path d="M3 21l18 0" />
+                                <path d="M5 21v-14l8 -4v18" />
+                                <path d="M19 21v-10l-6 -4" />
+                                <path d="M9 9l0 .01" />
+                                <path d="M9 12l0 .01" />
+                                <path d="M9 15l0 .01" />
+                                <path d="M9 18l0 .01" />
+                            </svg>
+                        </span>
+                    </div>
+                    <div class="col">
+                        <div class="font-weight-medium">DEPARTMENTS</div>
+                        <div class="h2 mt-2 mb-0 text-info">{{ dept_labels|length if dept_labels else 0 }}</div>
+                        <div class="text-muted">Active categories</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Charts and Table for Admin -->
+<div class="row row-deck">
+    {% if dept_labels and dept_counts %}
+    <!-- Department Chart -->
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">Leads by Department</h3>
+            </div>
+            <div class="card-body">
+                <div class="chart-container" style="position: relative; height: 320px;">
+                    <canvas id="deptChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Department Stats -->
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">Department Statistics</h3>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-vcenter">
+                        <thead>
+                            <tr>
+                                <th>Department</th>
+                                <th>Leads</th>
+                                <th style="width: 40%">Progress</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for i in range(dept_labels|length) %}
+                            <tr>
+                                <td>
+                                    <span class="badge bg-primary-lt">{{ dept_labels[i] }}</span>
+                                </td>
+                                <td><strong>{{ dept_counts[i] }}</strong></td>
+                                <td>
+                                    <div class="progress progress-sm">
+                                        <div class="progress-bar" 
+                                             style="width: {{ (dept_counts[i] / total_leads * 100) if total_leads > 0 else 0 }}%">
+                                        </div>
+                                    </div>
+                                    <div class="small text-muted">
+                                        {{ "%.1f"|format((dept_counts[i] / total_leads * 100) if total_leads > 0 else 0) }}%
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body text-center py-5">
+                <div class="empty">
+                    <div class="empty-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                            <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                            <path d="M9 5h-2a2 2 0 0 0 -2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-12a2 2 0 0 0 -2 -2h-2" />
+                            <path d="M9 5a2 2 0 0 1 2 -2h2a2 2 0 0 1 2 2v0a2 2 0 0 1 -2 2h-2a2 2 0 0 1 -2 -2z" />
+                        </svg>
+                    </div>
+                    <p class="empty-title">No data available</p>
+                    <p class="empty-subtitle text-muted">
+                        Start by adding leads to see analytics and statistics.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+{% else %}
+<!-- USER DASHBOARD - FOCUSED ON TODAY'S WORK -->
+<div class="row row-deck mb-4">
+    <div class="col-sm-6 col-lg-3">
+        <div class="card card-sm kpi-card">
+            <div class="card-body">
+                <div class="row align-items-center">
+                    <div class="col-auto">
+                        <span class="bg-success text-white avatar">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                                <path d="M12 12m-9 0a9 9 0 1 0 18 0a9 9 0 1 0 -18 0" />
+                                <path d="M9 12l6 0" />
+                                <path d="M12 9l0 6" />
+                            </svg>
+                        </span>
+                    </div>
+                    <div class="col">
+                        <div class="font-weight-medium">TODAY'S LEADS</div>
+                        <div class="h2 mt-2 mb-0 text-success">{{ today_leads }}</div>
+                        <div class="text-muted">Added today</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+        <div class="card card-sm kpi-card">
+            <div class="card-body">
+                <div class="row align-items-center">
+                    <div class="col-auto">
+                        <span class="bg-warning text-white avatar">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                                <path d="M12 12m-9 0a9 9 0 1 0 18 0a9 9 0 1 0 -18 0" />
+                                <path d="M12 8l0 4" />
+                                <path d="M12 16l.01 0" />
+                            </svg>
+                        </span>
+                    </div>
+                    <div class="col">
+                        <div class="font-weight-medium">ISSUE LEADS</div>
+                        <div class="h2 mt-2 mb-0 text-warning">{{ issue_leads }}</div>
+                        <div class="text-muted">Need attention</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+        <div class="card card-sm kpi-card">
+            <div class="card-body">
+                <div class="row align-items-center">
+                    <div class="col-auto">
+                        <span class="bg-info text-white avatar">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                                <path d="M5 12l5 5l10 -10" />
+                            </svg>
+                        </span>
+                    </div>
+                    <div class="col">
+                        <div class="font-weight-medium">ACTIVE TODAY</div>
+                        <div class="h2 mt-2 mb-0 text-info">{{ today_leads - issue_leads }}</div>
+                        <div class="text-muted">Processing today</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+        <div class="card card-sm kpi-card">
+            <div class="card-body">
+                <div class="row align-items-center">
+                    <div class="col-auto">
+                        <span class="bg-primary text-white avatar">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                                <path d="M8 7a4 4 0 1 0 8 0a4 4 0 0 0 -8 0" />
+                                <path d="M6 21v-2a4 4 0 0 1 4 -4h4" />
+                                <path d="M15 19l2 2l4 -4" />
+                            </svg>
+                        </span>
+                    </div>
+                    <div class="col">
+                        <div class="font-weight-medium">RESOLVED TODAY</div>
+                        <div class="h2 mt-2 mb-0 text-primary">{{ resolved_today }}</div>
+                        <div class="text-muted">Completed today</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Today's Leads & Issue Leads for User -->
+<div class="row row-deck">
+    <!-- Today's Leads -->
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">Today's Leads</h3>
+                <div class="card-actions">
+                    <span class="badge bg-success">{{ today_leads_list|length }}</span>
+                </div>
+            </div>
+            <div class="card-body">
+                {% if today_leads_list %}
+                <div class="table-responsive">
+                    <table class="table table-vcenter">
+                        <thead>
+                            <tr>
+                                <th>Customer</th>
+                                <th>Department</th>
+                                <th>Status</th>
+                                <th>Time Added</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for lead in today_leads_list %}
+                            <tr>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <span class="avatar avatar-sm bg-success-lt me-3">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="16" height="16" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                                <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                                                <path d="M12 7m-4 0a4 4 0 1 0 8 0a4 4 0 1 0 -8 0" />
+                                                <path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" />
+                                            </svg>
+                                        </span>
+                                        <div>
+                                            <div class="font-weight-medium">{{ lead.customer_name }}</div>
+                                            <div class="text-muted small">{{ lead.customer_number }}</div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="badge bg-primary-lt">{{ lead.department }}</span>
+                                </td>
+                                <td>
+                                    {% if lead.status == "New Lead" %}
+                                        <span class="badge bg-blue-lt">New Lead</span>
+                                    {% elif lead.status == "Issue in Lead" %}
+                                        <span class="badge bg-red-lt">Issue</span>
+                                    {% elif lead.status == "Updated" %}
+                                        <span class="badge bg-green-lt">Updated</span>
+                                    {% else %}
+                                        <span class="badge bg-yellow-lt">{{ lead.status }}</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <div class="text-muted small">{{ lead.created_at.strftime('%H:%M') }}</div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="empty">
+                    <div class="empty-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                            <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                            <path d="M9 5h-2a2 2 0 0 0 -2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-12a2 2 0 0 0 -2 -2h-2" />
+                            <path d="M9 5a2 2 0 0 1 2 -2h2a2 2 0 0 1 2 2v0a2 2 0 0 1 -2 2h-2a2 2 0 0 1 -2 -2z" />
+                        </svg>
+                    </div>
+                    <p class="empty-title">No leads today</p>
+                    <p class="empty-subtitle text-muted">
+                        Start by adding today's first lead.
+                    </p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Issue Leads -->
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">Issue Leads - Need Attention</h3>
+                <div class="card-actions">
+                    <span class="badge bg-danger">{{ issue_leads_list|length }}</span>
+                </div>
+            </div>
+            <div class="card-body">
+                {% if issue_leads_list %}
+                <div class="table-responsive">
+                    <table class="table table-vcenter">
+                        <thead>
+                            <tr>
+                                <th>Customer</th>
+                                <th>Department</th>
+                                <th>Issue Date</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for lead in issue_leads_list %}
+                            <tr>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <span class="avatar avatar-sm bg-danger-lt me-3">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="16" height="16" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                                <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                                                <path d="M12 9v4" />
+                                                <path d="M12 16v.01" />
+                                                <path d="M5 19h14a2 2 0 0 0 1.84 -2.75l-7.1 -12.25a2 2 0 0 0 -3.5 0l-7.1 12.25a2 2 0 0 0 1.75 2.75" />
+                                            </svg>
+                                        </span>
+                                        <div>
+                                            <div class="font-weight-medium">{{ lead.customer_name }}</div>
+                                            <div class="text-muted small">{{ lead.customer_number }}</div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="badge bg-primary-lt">{{ lead.department }}</span>
+                                </td>
+                                <td>
+                                    <div class="text-muted small">{{ lead.created_at.strftime('%b %d, %Y') }}</div>
+                                </td>
+                                <td>
+                                    <div class="btn-group">
+                                        <a href="{{ url_for('edit_lead', lead_id=lead.id) }}" class="btn btn-sm btn-warning">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="16" height="16" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                                <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                                                <path d="M7 7h-1a2 2 0 0 0 -2 2v9a2 2 0 0 0 2 2h9a2 2 0 0 0 2 -2v-1" />
+                                                <path d="M20.385 6.585a2.1 2.1 0 0 0 -2.97 -2.97l-8.415 8.385v3h3l8.385 -8.415z" />
+                                                <path d="M16 5l3 3" />
+                                            </svg>
+                                            Edit
+                                        </a>
+                                        <form method="POST" action="{{ url_for('resolve_lead', lead_id=lead.id) }}" class="d-inline">
+                                            <button type="submit" class="btn btn-sm btn-success" onclick="return confirm('Are you sure you want to mark this lead as resolved?')">
+                                                <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="16" height="16" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                                    <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                                                    <path d="M5 12l5 5l10 -10" />
+                                                </svg>
+                                                Resolve
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="empty">
+                    <div class="empty-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                            <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                            <path d="M5 12l5 5l10 -10" />
+                        </svg>
+                    </div>
+                    <p class="empty-title">No issue leads</p>
+                    <p class="empty-subtitle text-muted">
+                        Great! All leads are processed properly.
+                    </p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Leads for User -->
+<div class="row row-deck mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">Recent Leads</h3>
+            </div>
+            <div class="card-body">
+                {% if recent_leads %}
+                <div class="table-responsive">
+                    <table class="table table-vcenter">
+                        <thead>
+                            <tr>
+                                <th>Customer</th>
+                                <th>Department</th>
+                                <th>Status</th>
+                                <th>Date Added</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for lead in recent_leads %}
+                            <tr>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <span class="avatar avatar-sm bg-primary-lt me-3">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                                <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                                                <path d="M12 7m-4 0a4 4 0 1 0 8 0a4 4 0 1 0 -8 0" />
+                                                <path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" />
+                                            </svg>
+                                        </span>
+                                        <div>
+                                            <div class="font-weight-medium">{{ lead.customer_name }}</div>
+                                            <div class="text-muted small">{{ lead.customer_number }}</div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="badge bg-primary-lt">{{ lead.department }}</span>
+                                </td>
+                                <td>
+                                    {% if lead.status == "New Lead" %}
+                                        <span class="badge bg-blue-lt">New Lead</span>
+                                    {% elif lead.status == "Issue in Lead" %}
+                                        <span class="badge bg-red-lt">Issue in Lead</span>
+                                    {% elif lead.status == "Updated" %}
+                                        <span class="badge bg-green-lt">Updated</span>
+                                    {% else %}
+                                        <span class="badge bg-yellow-lt">{{ lead.status }}</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <div class="text-muted small">{{ lead.created_at.strftime('%b %d, %Y') }}</div>
+                                </td>
+                                <td>
+                                    {% if lead.status == "Issue in Lead" %}
+                                    <a href="{{ url_for('edit_lead', lead_id=lead.id) }}" class="btn btn-sm btn-warning">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="16" height="16" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                            <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                                            <path d="M7 7h-1a2 2 0 0 0 -2 2v9a2 2 0 0 0 2 2h9a2 2 0 0 0 2 -2v-1" />
+                                            <path d="M20.385 6.585a2.1 2.1 0 0 0 -2.97 -2.97l-8.415 8.385v3h3l8.385 -8.415z" />
+                                            <path d="M16 5l3 3" />
+                                        </svg>
+                                        Edit
+                                    </a>
+                                    {% else %}
+                                    <span class="text-muted small">View only</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="empty">
+                    <div class="empty-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                            <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                            <path d="M9 5h-2a2 2 0 0 0 -2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-12a2 2 0 0 0 -2 -2h-2" />
+                            <path d="M9 5a2 2 0 0 1 2 -2h2a2 2 0 0 1 2 2v0a2 2 0 0 1 -2 2h-2a2 2 0 0 1 -2 -2z" />
+                        </svg>
+                    </div>
+                    <p class="empty-title">No leads yet</p>
+                    <p class="empty-subtitle text-muted">
+                        Get started by adding your first lead.
+                    </p>
+                    <div class="empty-action">
+                        <a href="{{ url_for('add_lead') }}" class="btn btn-primary">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="16" height="16" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                                <path d="M12 5l0 14" />
+                                <path d="M5 12l14 0" />
+                            </svg>
+                            Add New Lead
+                        </a>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Quick Actions -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">Quick Actions</h3>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <a href="{{ url_for('add_lead') }}" class="card card-sm bg-primary text-white action-tile">
+                            <div class="card-body text-center p-3">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-plus mb-2" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                    <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                                    <path d="M12 5l0 14" />
+                                    <path d="M5 12l14 0" />
+                                </svg>
+                                <div class="font-weight-medium">Add New Lead</div>
+                            </div>
+                        </a>
+                    </div>
+                    <div class="col-md-3">
+                        <a href="{{ url_for('leads') }}" class="card card-sm bg-success text-white action-tile">
+                            <div class="card-body text-center p-3">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-list mb-2" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                    <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                                    <path d="M9 6l11 0" />
+                                    <path d="M9 12l11 0" />
+                                    <path d="M9 18l11 0" />
+                                    <path d="M5 6l0 .01" />
+                                    <path d="M5 12l0 .01" />
+                                    <path d="M5 18l0 .01" />
+                                </svg>
+                                <div class="font-weight-medium">Manage Leads</div>
+                            </div>
+                        </a>
+                    </div>
+                    {% if current_user.role == 'admin' %}
+                    <div class="col-md-3">
+                        <a href="{{ url_for('analytics') }}" class="card card-sm bg-info text-white action-tile">
+                            <div class="card-body text-center p-3">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-chart-bar mb-2" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                    <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                                    <path d="M3 12m0 1a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v6a1 1 0 0 1 -1 1h-4a1 1 0 0 1 -1 -1z" />
+                                    <path d="M9 8m0 1a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v10a1 1 0 0 1 -1 1h-4a1 1 0 0 1 -1 -1z" />
+                                    <path d="M15 4m0 1a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v14a1 1 0 0 1 -1 1h-4a1 1 0 0 1 -1 -1z" />
+                                </svg>
+                                <div class="font-weight-medium">View Analytics</div>
+                            </div>
+                        </a>
+                    </div>
+                    <div class="col-md-3">
+                        <a href="{{ url_for('users') }}" class="card card-sm bg-warning text-white action-tile">
+                            <div class="card-body text-center p-3">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-users mb-2" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                    <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                                    <path d="M9 7m-4 0a4 4 0 1 0 8 0a4 4 0 1 0 -8 0" />
+                                    <path d="M3 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" />
+                                    <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                                    <path d="M21 21v-2a4 4 0 0 0 -3 -3.85" />
+                                </svg>
+                                <div class="font-weight-medium">User Management</div>
+                            </div>
+                        </a>
+                    </div>
+                    {% else %}
+                    <div class="col-md-3">
+                        <a href="{{ url_for('leads') }}" class="card card-sm bg-info text-white action-tile">
+                            <div class="card-body text-center p-3">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-eye mb-2" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                    <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                                    <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" />
+                                    <path d="M21 12c-2.4 4 -5.4 6 -9 6c-3.6 0 -6.6 -2 -9 -6c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6" />
+                                </svg>
+                                <div class="font-weight-medium">View My Leads</div>
+                            </div>
+                        </a>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card card-sm bg-secondary text-white action-tile">
+                            <div class="card-body text-center p-3">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-user-circle mb-2" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                    <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                                    <path d="M12 12m-9 0a9 9 0 1 0 18 0a9 9 0 1 0 -18 0" />
+                                    <path d="M12 10m-3 0a3 3 0 1 0 6 0a3 3 0 1 0 -6 0" />
+                                    <path d="M6.168 18.849a4 4 0 0 1 3.832 -2.849h4a4 4 0 0 1 3.834 2.855" />
+                                </svg>
+                                <div class="font-weight-medium">{{ current_user.username }}</div>
+                                <small>Team Member</small>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    {% if is_admin and dept_labels and dept_counts %}
+    const ctx = document.getElementById('deptChart');
+    if (ctx) {
+        new Chart(ctx.getContext('2d'), {
+            type: 'doughnut',
+            data: {
+                labels: {{ dept_labels|default([])|tojson }},
+                datasets: [{
+                    data: {{ dept_counts|default([])|tojson }},
+                    backgroundColor: ['#206bc4','#2fb344','#f59f00','#4299e1','#e64980','#868e96','#5c7cfa','#20c997'],
+                    borderColor: '#fff',
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: { 
+                        position: 'bottom', 
+                        labels: { 
+                            usePointStyle: true, 
+                            padding: 20,
+                            font: { size: 11 }
+                        } 
+                    }
+                },
+                cutout: '65%'
+            }
+        });
+    }
+    {% endif %}
+
+    function updateDashboardTime() {
+        const now = new Date();
+        const timeElement = document.getElementById('update-time');
+        if (timeElement) {
+            timeElement.textContent = now.toLocaleTimeString();
+        }
+    }
+    setInterval(updateDashboardTime, 60000);
+});
+</script>
+{% endblock %}

@@ -1,0 +1,139 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Lead - AccBoost CRM{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div class="row align-items-center">
+        <div class="col">
+            <h1 class="page-title">Edit Lead</h1>
+            <div class="text-muted mt-1">Update lead information - Status: 
+                <span class="badge {% if lead.status == 'Issue in Lead' %}bg-danger{% else %}bg-warning{% endif %}">
+                    {{ lead.status }}
+                </span>
+            </div>
+        </div>
+        <div class="col-auto">
+            <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">
+                ← Back to Dashboard
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">Lead Information</h3>
+            </div>
+            <div class="card-body">
+                <!-- Add flash messages display -->
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                            <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+
+                <form method="POST">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Customer Name *</label>
+                                <input type="text" class="form-control" name="customer_name" 
+                                       value="{{ lead.customer_name }}" required maxlength="150">
+                                <div class="form-text">Required field</div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Customer Number *</label>
+                                <input type="text" class="form-control" name="customer_number" 
+                                       value="{{ lead.customer_number }}" required maxlength="20">
+                                <div class="form-text">Required field</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Department *</label>
+                        <select class="form-select" name="department" required>
+                            <option value="">Select a department</option>
+                            {% for dept in departments %}
+                            <option value="{{ dept }}" {% if lead.department == dept %}selected{% endif %}>
+                                {{ dept }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Context/Service *</label>
+                        <textarea class="form-control" name="context_service" rows="4" required 
+                                  placeholder="Describe the service context...">{{ lead.context_service }}</textarea>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label class="form-label">Main Area *</label>
+                                <input type="text" class="form-control" name="main_area" 
+                                       value="{{ lead.main_area }}" required maxlength="100">
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label class="form-label">Second Main Area</label>
+                                <input type="text" class="form-control" name="second_main_area" 
+                                       value="{{ lead.second_main_area or '' }}" maxlength="100">
+                                <div class="form-text">Optional</div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label class="form-label">Sub Location</label>
+                                <input type="text" class="form-control" name="sub_location" 
+                                       value="{{ lead.sub_location or '' }}" maxlength="100">
+                                <div class="form-text">Optional</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Display current status info -->
+                    <div class="alert alert-info">
+                        <div class="d-flex align-items-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon me-2" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                                <path d="M12 9v4" />
+                                <path d="M12 16v.01" />
+                            </svg>
+                            <div>
+                                <strong>Note:</strong> After saving changes, this lead's status will automatically change from 
+                                <span class="badge bg-danger">Issue in Lead</span> to <span class="badge bg-success">Updated</span>.
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-footer">
+                        <button type="submit" class="btn btn-primary">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                                <path d="M6 4h10l4 4v10a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2" />
+                                <path d="M12 14m-2 0a2 2 0 1 0 4 0a2 2 0 1 0 -4 0" />
+                                <path d="M14 4l0 4l-6 0l0 -4" />
+                            </svg>
+                            Update Lead
+                        </button>
+                        <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+
+{% block title %}Add Lead - CRM{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div class="row align-items-center">
+    <div class="col">
+      <h1 class="page-title">Add New Lead</h1>
+      <div class="text-muted mt-1">Create a new lead entry</div>
+    </div>
+    <div class="col-auto">
+      <a href="{{ url_for('leads') }}" class="btn btn-outline-secondary">
+        <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="16" height="16" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+          <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+          <path d="M9 5h-2a2 2 0 0 0 -2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-12a2 2 0 0 0 -2 -2h-2" />
+          <path d="M9 5a2 2 0 0 1 2 -2h2a2 2 0 0 1 2 2v0a2 2 0 0 1 -2 2h-2a2 2 0 0 1 -2 -2z" />
+          <path d="M9 12h6" />
+          <path d="M9 16h6" />
+        </svg>
+        View My Leads
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- Add Lead Form -->
+<div class="card mb-4">
+  <div class="card-header">
+    <h3 class="card-title">Add New Lead</h3>
+  </div>
+  <div class="card-body">
+    <form method="POST" action="{{ url_for('leads') }}" enctype="multipart/form-data">
+      <div class="row">
+        <div class="col-lg-6">
+          <div class="mb-3">
+            <label class="form-label required">Customer Name</label>
+            <input type="text" class="form-control" name="customer_name" placeholder="Enter full name" required>
+          </div>
+        </div>
+        <div class="col-lg-6">
+          <div class="mb-3">
+            <label class="form-label required">Customer Number</label>
+            <input type="tel" class="form-control" name="customer_number" placeholder="Enter phone number" required>
+          </div>
+        </div>
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label required">Context / Service</label>
+        <textarea class="form-control" name="context_service" placeholder="Describe service requirements" rows="3" required></textarea>
+      </div>
+
+      <div class="row">
+        <div class="col-lg-6">
+          <div class="mb-3">
+            <label class="form-label required">Department</label>
+            <select class="form-select" name="department" required>
+              <option value="">Select Department</option>
+              {% for dept in departments %}
+              <option value="{{ dept }}">{{ dept }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+        <div class="col-lg-6">
+          <div class="mb-3">
+            <label class="form-label required">Main Area</label>
+            <input type="text" class="form-control" name="main_area" placeholder="Enter main area" required>
+          </div>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="col-lg-6">
+          <div class="mb-3">
+            <label class="form-label">2nd Main Area</label>
+            <input type="text" class="form-control" name="second_main_area" placeholder="Optional">
+          </div>
+        </div>
+        <div class="col-lg-6">
+          <div class="mb-3">
+            <label class="form-label">Sub Location</label>
+            <input type="text" class="form-control" name="sub_location" placeholder="Enter sub-location">
+          </div>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="col-lg-6">
+          <div class="mb-3">
+            <label class="form-label required">Added By</label>
+            <input type="text" class="form-control" name="added_by" value="{{ current_user.username }}" readonly>
+            <small class="form-hint">Your name is automatically recorded</small>
+          </div>
+        </div>
+        <div class="col-lg-6">
+          <div class="mb-3">
+            <label class="form-label">Attachment (Reference Photo / Doc)</label>
+            <input type="file" class="form-control" name="attachment" accept="image/*,.pdf,.doc,.docx">
+            <small class="form-hint">Upload JPG/PNG/GIF or PDF/DOC (max 16MB)</small>
+          </div>
+        </div>
+      </div>
+
+      <div class="mt-4">
+        <div class="btn-list justify-content-end">
+          <button type="reset" class="btn btn-light">Reset Form</button>
+          <button type="submit" class="btn btn-primary">Add Lead</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

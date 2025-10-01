@@ -1,0 +1,354 @@
+{% extends "base.html" %}
+
+{% block title %}My Leads - CRM{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div class="row align-items-center">
+    <div class="col">
+      <h1 class="page-title">My Leads</h1>
+      <div class="text-muted mt-1">Manage your active leads (New or Issues)</div>
+    </div>
+    <div class="col-auto">
+      <span class="badge bg-primary">Total: {{ leads|length }} active leads</span>
+      <a href="{{ url_for('add_lead') }}" class="btn btn-primary ms-2">
+        <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="16" height="16" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+          <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+          <path d="M12 5l0 14" />
+          <path d="M5 12l14 0" />
+        </svg>
+        Add New Lead
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- Leads Table -->
+<div class="card">
+  <div class="card-header">
+    <h3 class="card-title">My Active Leads</h3>
+    <div class="card-actions">
+      <button class="btn btn-outline-primary btn-sm">
+        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-download" width="16" height="16" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+          <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+          <path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2 -2v-2" />
+          <path d="M7 11l5 5l5 -5" />
+          <path d="M12 4l0 12" />
+        </svg>
+        Export
+      </button>
+      <button class="btn btn-outline-secondary btn-sm">
+        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-filter" width="16" height="16" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+          <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+          <path d="M5.5 5h13a1 1 0 0 1 .5 1.5l-5 5.5l0 7l-4 -3l0 -4l-5 -5.5a1 1 0 0 1 .5 -1.5" />
+        </svg>
+        Filter
+      </button>
+    </div>
+  </div>
+  <div class="card-body">
+    <div class="table-responsive">
+      <table class="table table-vcenter table-hover table-striped">
+        <thead>
+          <tr>
+            <th>Customer</th>
+            <th>Department</th>
+            <th>Service Context</th>
+            <th>Area</th>
+            <th>Attachment</th>
+            <th>Added By</th>
+            <th>Status</th>
+            <th>Date</th>
+            <th class="w-1">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for lead in leads %}
+          <tr>
+            <td>
+              <div class="d-flex align-items-center">
+                <span class="avatar avatar-sm bg-primary-lt me-3">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                    <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                    <path d="M12 7m-4 0a4 4 0 1 0 8 0a4 4 0 1 0 -8 0" />
+                    <path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" />
+                  </svg>
+                </span>
+                <div>
+                  <div class="font-weight-medium">{{ lead.customer_name }}</div>
+                  <div class="text-muted small">{{ lead.customer_number }}</div>
+                </div>
+              </div>
+            </td>
+
+            <td>
+              <span class="badge bg-primary-lt">{{ lead.department }}</span>
+            </td>
+
+            <td>
+              <div class="text-muted" style="max-width: 200px;">
+                {{ lead.context_service[:50] }}{% if lead.context_service|length > 50 %}...{% endif %}
+              </div>
+            </td>
+
+            <td>
+              <div class="text-muted small">
+                <div>Main: {{ lead.main_area or 'N/A' }}</div>
+                {% if lead.second_main_area %}<div>2nd: {{ lead.second_main_area }}</div>{% endif %}
+                <div>Sub: {{ lead.sub_location or 'N/A' }}</div>
+              </div>
+            </td>
+
+            <!-- Attachment column -->
+            <td>
+              {% if lead.attachment_filename %}
+                {% set ext = (lead.attachment_filename.rsplit('.',1)[1].lower() if '.' in lead.attachment_filename else '') %}
+                {% if ext in ['png','jpg','jpeg','gif'] %}
+                  <a href="{{ url_for('uploaded_file', filename=lead.attachment_filename) }}" target="_blank" rel="noopener" title="Open attachment">
+                    <img src="{{ url_for('uploaded_file', filename=lead.attachment_filename) }}" alt="attachment" class="rounded" style="width:60px;height:60px;object-fit:cover;">
+                  </a>
+                {% else %}
+                  <a href="{{ url_for('uploaded_file', filename=lead.attachment_filename) }}" target="_blank" rel="noopener" class="text-decoration-none">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-paperclip" width="16" height="16" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                      <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                      <path d="M15 7l-6.5 6.5a1.5 1.5 0 0 0 3 3l6.5 -6.5a3 3 0 0 0 -6 -6l-6.5 6.5a4.5 4.5 0 0 0 9 9l6.5 -6.5" />
+                    </svg>
+                    <small>{{ lead.attachment_filename[-20:] }}</small>
+                  </a>
+                {% endif %}
+              {% else %}
+                <span class="text-muted">None</span>
+              {% endif %}
+            </td>
+
+            <td>
+              <div class="d-flex align-items-center">
+                <span class="avatar avatar-xs bg-green-lt me-2"></span>
+                {{ lead.added_by }}
+              </div>
+            </td>
+
+            <td>
+              {% if lead.status == "New Lead" %}
+                <span class="badge bg-blue-lt">New Lead</span>
+              {% elif lead.status == "Issue in Lead" %}
+                <span class="badge bg-red-lt">Issue in Lead</span>
+              {% else %}
+                <span class="badge bg-yellow-lt">{{ lead.status }}</span>
+              {% endif %}
+              {% if lead.sub_status %}
+                <div class="text-muted small">{{ lead.sub_status }}</div>
+              {% endif %}
+            </td>
+
+            <td>
+              <div class="text-muted small">{{ lead.created_at.strftime('%b %d, %Y') }}</div>
+            </td>
+
+            <td>
+              <div class="btn-group" role="group">
+                <!-- View Button (always available) -->
+                <a href="#" class="btn btn-sm btn-outline-info" data-bs-toggle="modal" data-bs-target="#viewLead{{ lead.id }}">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="16" height="16" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                    <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                    <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" />
+                    <path d="M21 12c-2.4 4 -5.4 6 -9 6c-3.6 0 -6.6 -2 -9 -6c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6" />
+                  </svg>
+                </a>
+
+                {% if current_user.role == "admin" %}
+                  <!-- Admin: Status Dropdown (3 options only) -->
+                  <form action="{{ url_for('update_status', lead_id=lead.id) }}" method="POST" style="display: inline;">
+                    <select name="status" class="form-select form-select-sm d-inline-block" onchange="this.form.submit();" style="width: auto; max-width: 150px;">
+                      <option value="New Lead" {% if lead.status == "New Lead" %}selected{% endif %}>New Lead</option>
+                      <option value="Issue in Lead" {% if lead.status == "Issue in Lead" %}selected{% endif %}>Issue in Lead</option>
+                      <option value="Done" {% if lead.status == "Done" %}selected{% endif %}>Done (Move to All Leads)</option>
+                    </select>
+                  </form>
+                {% elif current_user.username == lead.added_by and lead.status == "Issue in Lead" %}
+                  <!-- User: Edit Button (only if Issue and owner) -->
+                  <button class="btn btn-sm btn-warning" data-bs-toggle="modal" data-bs-target="#editLead{{ lead.id }}">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="16" height="16" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                      <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                      <path d="M7 7h-1a2 2 0 0 0 -2 2v9a2 2 0 0 0 2 2h9a2 2 0 0 0 2 -2v-1" />
+                      <path d="M20.385 6.585a2.1 2.1 0 0 0 -2.97 -2.97l-8.415 8.385v3h3l8.385 -8.415z" />
+                      <path d="M16 5l3 3" />
+                    </svg>
+                  </button>
+                {% else %}
+                  <span class="text-muted small">View only</span>
+                {% endif %}
+              </div>
+            </td>
+          </tr>
+
+          <!-- View Lead Modal -->
+          <div class="modal modal-blur fade" id="viewLead{{ lead.id }}" tabindex="-1">
+            <div class="modal-dialog modal-lg">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h5 class="modal-title">Lead Details: {{ lead.customer_name }}</h5>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                  <div class="row">
+                    <div class="col-md-6">
+                      <div class="mb-3">
+                        <label class="form-label">Customer Number</label>
+                        <div class="form-control-plaintext">{{ lead.customer_number }}</div>
+                      </div>
+                    </div>
+                    <div class="col-md-6">
+                      <div class="mb-3">
+                        <label class="form-label">Department</label>
+                        <div class="form-control-plaintext">{{ lead.department }}</div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div class="row">
+                    <div class="col-md-6">
+                      <div class="mb-3">
+                        <label class="form-label">Added By</label>
+                        <div class="form-control-plaintext">{{ lead.added_by }}</div>
+                      </div>
+                    </div>
+                    <div class="col-md-6">
+                      <div class="mb-3">
+                        <label class="form-label">Status</label>
+                        <div class="form-control-plaintext">
+                          {{ lead.status }}{% if lead.sub_status %} - {{ lead.sub_status }}{% endif %}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="mb-3">
+                    <label class="form-label">Areas</label>
+                    <div class="form-control-plaintext">
+                      <strong>Main:</strong> {{ lead.main_area or 'N/A' }}<br>
+                      {% if lead.second_main_area %}<strong>2nd Main:</strong> {{ lead.second_main_area }}<br>{% endif %}
+                      <strong>Sub Location:</strong> {{ lead.sub_location or 'N/A' }}
+                    </div>
+                  </div>
+
+                  <div class="mb-3">
+                    <label class="form-label">Added On</label>
+                    <div class="form-control-plaintext">{{ lead.created_at.strftime('%b %d, %Y at %H:%M') }}</div>
+                  </div>
+
+                  <div class="mb-3">
+                    <label class="form-label">Context / Service</label>
+                    <div class="form-control-plaintext">{{ lead.context_service }}</div>
+                  </div>
+
+                  <div class="mb-3">
+                    <label class="form-label">Attachment</label>
+                    <div>
+                      {% if lead.attachment_filename %}
+                        {% set ext = (lead.attachment_filename.rsplit('.',1)[1].lower() if '.' in lead.attachment_filename else '') %}
+                        {% if ext in ['png','jpg','jpeg','gif'] %}
+                          <a href="{{ url_for('uploaded_file', filename=lead.attachment_filename) }}" target="_blank" rel="noopener">
+                            <img src="{{ url_for('uploaded_file', filename=lead.attachment_filename) }}" alt="attachment" class="img-fluid rounded" style="max-height:300px; object-fit:contain;">
+                          </a>
+                        {% else %}
+                          <a href="{{ url_for('uploaded_file', filename=lead.attachment_filename) }}" target="_blank" rel="noopener" class="btn btn-outline-primary">
+                            Open {{ lead.attachment_filename }}
+                          </a>
+                        {% endif %}
+                      {% else %}
+                        <span class="text-muted">No attachment</span>
+                      {% endif %}
+                    </div>
+                  </div>
+                </div>
+                <div class="modal-footer">
+                  <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Edit Lead Modal (for Issue in Lead, user only) -->
+          {% if current_user.username == lead.added_by and lead.status == "Issue in Lead" %}
+          <div class="modal modal-blur fade" id="editLead{{ lead.id }}" tabindex="-1">
+            <div class="modal-dialog modal-lg">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h5 class="modal-title">Edit Lead: {{ lead.customer_name }}</h5>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                  <form method="POST" action="{{ url_for('update_status', lead_id=lead.id) }}">
+                    <div class="row">
+                      <div class="col-md-6">
+                        <div class="mb-3">
+                          <label class="form-label">Customer Name</label>
+                          <input type="text" class="form-control" name="customer_name" value="{{ lead.customer_name }}" required>
+                        </div>
+                      </div>
+                      <div class="col-md-6">
+                        <div class="mb-3">
+                          <label class="form-label">Customer Number</label>
+                          <input type="tel" class="form-control" name="customer_number" value="{{ lead.customer_number }}" required>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="mb-3">
+                      <label class="form-label">Context / Service</label>
+                      <textarea class="form-control" name="context_service" rows="3" required>{{ lead.context_service }}</textarea>
+                    </div>
+
+                    <div class="row">
+                      <div class="col-md-6">
+                        <div class="mb-3">
+                          <label class="form-label">Department</label>
+                          <select class="form-select" name="department" required>
+                            <option value="">Select Department</option>
+                            {% for dept in departments %}
+                            <option value="{{ dept }}" {% if lead.department == dept %}selected{% endif %}>{{ dept }}</option>
+                            {% endfor %}
+                          </select>
+                        </div>
+                      </div>
+                      <div class="col-md-6">
+                        <div class="mb-3">
+                          <label class="form-label">Main Area</label>
+                          <input type="text" class="form-control" name="main_area" value="{{ lead.main_area or '' }}" required>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="row">
+                      <div class="col-md-6">
+                        <div class="mb-3">
+                          <label class="form-label">2nd Main Area</label>
+                          <input type="text" class="form-control" name="second_main_area" value="{{ lead.second_main_area or '' }}">
+                        </div>
+                      </div>
+                      <div class="col-md-6">
+                        <div class="mb-3">
+                          <label class="form-label">Sub Location</label>
+                          <input type="text" class="form-control" name="sub_location" value="{{ lead.sub_location or '' }}">
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="modal-footer">
+                      <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                      <button type="submit" class="btn btn-primary">Save Changes</button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            </div>
+          </div>
+          {% endif %}
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

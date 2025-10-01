@@ -1,0 +1,383 @@
+{% extends "base.html" %}
+
+{% block title %}User Management - CRM{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div class="row align-items-center">
+    <div class="col">
+      <h1 class="page-title">User Management</h1>
+      <div class="text-muted mt-1">Manage system users and their permissions (Admin Only)</div>
+    </div>
+    <div class="col-auto">
+      <div class="btn-list">
+        <a href="{{ url_for('register') }}" class="btn btn-primary">
+          <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-user-plus" width="16" height="16" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+            <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+            <path d="M8 7a4 4 0 1 0 8 0a4 4 0 0 0 -8 0" />
+            <path d="M16 19h6" />
+            <path d="M19 16v6" />
+            <path d="M6 21v-2a4 4 0 0 1 4 -4h4" />
+          </svg>
+          Add User
+        </a>
+        <button class="btn btn-outline-secondary">
+          <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-download" width="16" height="16" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+            <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+            <path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2 -2v-2" />
+            <path d="M7 11l5 5l5 -5" />
+            <path d="M12 4l0 12" />
+          </svg>
+          Export
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- User Statistics -->
+<div class="row row-deck mb-4">
+  <div class="col-sm-6 col-lg-3">
+    <div class="card card-sm">
+      <div class="card-body">
+        <div class="row align-items-center">
+          <div class="col-auto">
+            <span class="bg-primary text-white avatar">
+              <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                <path d="M9 7m-4 0a4 4 0 1 0 8 0a4 4 0 1 0 -8 0" />
+                <path d="M3 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" />
+                <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                <path d="M21 21v-2a4 4 0 0 0 -3 -3.85" />
+              </svg>
+            </span>
+          </div>
+          <div class="col">
+            <div class="font-weight-medium">Total Users</div>
+            <div class="h2 mt-2 mb-0 text-primary">{{ users|length }}</div>
+            <div class="text-muted">All system users</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-sm-6 col-lg-3">
+    <div class="card card-sm">
+      <div class="card-body">
+        <div class="row align-items-center">
+          <div class="col-auto">
+            <span class="bg-success text-white avatar">
+              <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                <path d="M12 3a12 12 0 0 0 8.5 3a12 12 0 0 1 -8.5 15a12 12 0 0 1 -8.5 -15a12 12 0 0 0 8.5 -3" />
+                <path d="M12 11m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0" />
+                <path d="M12 12l0 2.5" />
+              </svg>
+            </span>
+          </div>
+          <div class="col">
+            <div class="font-weight-medium">Administrators</div>
+            <div class="h2 mt-2 mb-0 text-success">
+              {{ users|selectattr('role', 'equalto', 'admin')|list|length }}
+            </div>
+            <div class="text-muted">Full system access</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-sm-6 col-lg-3">
+    <div class="card card-sm">
+      <div class="card-body">
+        <div class="row align-items-center">
+          <div class="col-auto">
+            <span class="bg-warning text-white avatar">
+              <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                <path d="M12 7m-4 0a4 4 0 1 0 8 0a4 4 0 1 0 -8 0" />
+                <path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" />
+              </svg>
+            </span>
+          </div>
+          <div class="col">
+            <div class="font-weight-medium">Standard Users</div>
+            <div class="h2 mt-2 mb-0 text-warning">
+              {{ users|selectattr('role', 'equalto', 'user')|list|length }}
+            </div>
+            <div class="text-muted">Lead management only</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-sm-6 col-lg-3">
+    <div class="card card-sm">
+      <div class="card-body">
+        <div class="row align-items-center">
+          <div class="col-auto">
+            <span class="bg-info text-white avatar">
+              <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                <path d="M6 4h11a2 2 0 0 1 2 2v12a2 2 0 0 1 -2 2h-11a1 1 0 0 1 -1 -1v-14a1 1 0 0 1 1 -1m3 0v18" />
+                <path d="M13 8l2 0" />
+                <path d="M13 12l2 0" />
+              </svg>
+            </span>
+          </div>
+          <div class="col">
+            <div class="font-weight-medium">Active Today</div>
+            <div class="h2 mt-2 mb-0 text-info">0</div>
+            <div class="text-muted">Recently active</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Users Table -->
+<div class="card">
+  <div class="card-header">
+    <h3 class="card-title">All Users</h3>
+    <div class="card-actions">
+      <div class="input-group" style="width: 200px;">
+        <input type="text" class="form-control form-control-sm" placeholder="Search users...">
+        <button class="btn btn-sm btn-outline-primary" type="button">
+          <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-search" width="16" height="16" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+            <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+            <path d="M10 10m-7 0a7 7 0 1 0 14 0a7 7 0 1 0 -14 0" />
+            <path d="M21 21l-6 -6" />
+          </svg>
+        </button>
+      </div>
+      <select class="form-select form-select-sm" style="width: 150px;">
+        <option>All Roles</option>
+        <option>Admin Only</option>
+        <option>User Only</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="card-body">
+    {% if users %}
+    <div class="table-responsive">
+      <table class="table table-vcenter table-hover">
+        <thead>
+          <tr>
+            <th>User</th>
+            <th>Role</th>
+            <th>Account Created</th>
+            <th>Lead Count</th>
+            <th>Status</th>
+            <th class="w-1">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for user in users %}
+          <tr>
+            <td>
+              <div class="d-flex align-items-center">
+                <span class="avatar avatar-sm bg-primary-lt me-3">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                    <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                    <path d="M12 7m-4 0a4 4 0 1 0 8 0a4 4 0 1 0 -8 0" />
+                    <path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" />
+                  </svg>
+                </span>
+                <div>
+                  <div class="font-weight-medium">{{ user.username }}</div>
+                  <div class="text-muted small">ID: {{ user.id }}</div>
+                </div>
+              </div>
+            </td>
+            <td>
+              {% if user.role == 'admin' %}
+              <span class="badge bg-success-lt">
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-shield-check" width="16" height="16" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;">
+                  <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                  <path d="M11.46 20.846a12 12 0 0 1 -7.96 -14.846a12 12 0 0 0 8.5 -3a12 12 0 0 0 8.5 3a12 12 0 0 1 -.09 7.06" />
+                  <path d="M15 19l2 2l4 -4" />
+                </svg>
+                Admin
+              </span>
+              {% else %}
+              <span class="badge bg-secondary-lt">
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-user" width="16" height="16" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;">
+                  <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                  <path d="M8 7a4 4 0 1 0 8 0a4 4 0 0 0 -8 0" />
+                  <path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" />
+                </svg>
+                User
+              </span>
+              {% endif %}
+            </td>
+            <td>
+              <div class="text-muted small">
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar" width="16" height="16" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;">
+                  <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                  <path d="M4 7a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v12a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2v-12z" />
+                  <path d="M16 3v4" />
+                  <path d="M8 3v4" />
+                  <path d="M4 11h16" />
+                  <path d="M11 15h1" />
+                  <path d="M12 15v3" />
+                </svg>
+                {{ user.created_at.strftime('%b %d, %Y') if user.created_at else 'N/A' }}
+              </div>
+            </td>
+            <td>
+              <span class="badge bg-primary">
+                {{ user.leads|length if user.leads else 0 }} leads
+              </span>
+            </td>
+            <td>
+              {% if current_user.id == user.id %}
+              <span class="badge bg-info-lt">
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-star" width="16" height="16" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;">
+                  <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                  <path d="M12 17.75l-6.172 3.245l1.179 -6.873l-5 -4.867l6.9 -1l3.086 -6.253l3.086 6.253l6.9 1l-5 4.867l1.179 6.873z" />
+                </svg>
+                Current
+              </span>
+              {% else %}
+              <span class="badge bg-success-lt">
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-circle-check" width="16" height="16" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;">
+                  <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                  <path d="M12 12m-9 0a9 9 0 1 0 18 0a9 9 0 1 0 -18 0" />
+                  <path d="M9 12l2 2l4 -4" />
+                </svg>
+                Active
+              </span>
+              {% endif %}
+            </td>
+            <td>
+              <div class="dropdown">
+                <button class="btn btn-outline-primary btn-sm dropdown-toggle" data-bs-toggle="dropdown">
+                  Actions
+                </button>
+                <div class="dropdown-menu">
+                  <a class="dropdown-item" href="#" onclick="alert('Edit feature coming soon!'); return false;">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-edit" width="16" height="16" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 8px;">
+                      <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                      <path d="M7 7h-1a2 2 0 0 0 -2 2v9a2 2 0 0 0 2 2h9a2 2 0 0 0 2 -2v-1" />
+                      <path d="M20.385 6.585a2.1 2.1 0 0 0 -2.97 -2.97l-8.415 8.385v3h3l8.385 -8.415z" />
+                      <path d="M16 5l3 3" />
+                    </svg>
+                    Edit
+                  </a>
+                  <a class="dropdown-item" href="#" onclick="alert('Role change feature coming soon!'); return false;">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-arrows-exchange" width="16" height="16" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 8px;">
+                      <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                      <path d="M7 10h14l-4 -4" />
+                      <path d="M17 14h-14l4 4" />
+                    </svg>
+                    Change Role
+                  </a>
+                  <div class="dropdown-divider"></div>
+                  {% if current_user.id != user.id %}
+<form action="{{ url_for('delete_user', user_id=user.id) }}" method="POST" style="display:inline;"
+      onsubmit="return confirm('Are you sure you want to delete {{ user.username }}?');">
+  <button type="submit" class="dropdown-item text-danger">
+    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-trash" width="16" height="16"
+         viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none"
+         stroke-linecap="round" stroke-linejoin="round" style="margin-right: 8px;">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+      <path d="M4 7l16 0" />
+      <path d="M10 11l0 6" />
+      <path d="M14 11l0 6" />
+      <path d="M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2 -2l1 -12" />
+      <path d="M9 7v-3a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v3" />
+    </svg>
+    Delete
+  </button>
+</form>
+{% else %}
+<a class="dropdown-item text-muted" href="#" onclick="alert('You cannot delete your own account.'); return false;">
+  <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-circle-off" width="16" height="16"
+       viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none"
+       stroke-linecap="round" stroke-linejoin="round" style="margin-right: 8px;">
+    <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+    <path d="M20.042 16.045a9 9 0 0 0 -12.087 -12.087m-2.318 1.677a9 9 0 1 0 12.725 12.73" />
+    <path d="M3 3l18 18" />
+  </svg>
+  Cannot Delete
+</a>
+{% endif %}
+
+                </div>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Pagination -->
+    <div class="d-flex justify-content-center mt-4">
+      <ul class="pagination">
+        <li class="page-item disabled">
+          <a class="page-link" href="#">Previous</a>
+        </li>
+        <li class="page-item active"><a class="page-link" href="#">1</a></li>
+        <li class="page-item"><a class="page-link" href="#">2</a></li>
+        <li class="page-item"><a class="page-link" href="#">3</a></li>
+        <li class="page-item"><a class="page-link" href="#">Next</a></li>
+      </ul>
+    </div>
+    {% else %}
+    <div class="empty">
+      <div class="empty-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+          <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+          <path d="M9 7m-4 0a4 4 0 1 0 8 0a4 4 0 1 0 -8 0" />
+          <path d="M3 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" />
+        </svg>
+      </div>
+      <p class="empty-title">No users found</p>
+      <p class="empty-subtitle text-muted">
+        Users will appear here once they register.
+      </p>
+      <div class="empty-action">
+        <a href="{{ url_for('register') }}" class="btn btn-primary">
+          <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-user-plus" width="16" height="16" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+            <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+            <path d="M8 7a4 4 0 1 0 8 0a4 4 0 0 0 -8 0" />
+            <path d="M16 19h6" />
+            <path d="M19 16v6" />
+            <path d="M6 21v-2a4 4 0 0 1 4 -4h4" />
+          </svg>
+          Create First User
+        </a>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- User Activity Chart -->
+<div class="card mt-4">
+  <div class="card-header">
+    <h3 class="card-title">User Activity Overview</h3>
+  </div>
+  <div class="card-body">
+    <div class="empty">
+      <div class="empty-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+          <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+          <path d="M3 12m0 1a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v6a1 1 0 0 1 -1 1h-4a1 1 0 0 1 -1 -1z" />
+          <path d="M9 8m0 1a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v10a1 1 0 0 1 -1 1h-4a1 1 0 0 1 -1 -1z" />
+          <path d="M15 4m0 1a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v14a1 1 0 0 1 -1 1h-4a1 1 0 0 1 -1 -1z" />
+        </svg>
+      </div>
+      <p class="empty-title">User activity analytics</p>
+      <p class="empty-subtitle text-muted">
+        User activity tracking and analytics coming soon
+      </p>
+    </div>
+  </div>
+</div>
+{% endblock %}
