@@ -826,8 +826,7 @@ def timedelta_filter(value):
 # ---------------------------
 # Database Initialization
 # ---------------------------
-@app.before_first_request
-def initialize_database():
+with app.app_context():
     db.create_all()
     admin = User.query.filter_by(username='admin').first()
     if not admin:
