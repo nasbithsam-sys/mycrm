@@ -7,7 +7,7 @@
   <div class="row align-items-center">
     <div class="col">
       <h1 class="page-title">All Leads</h1>
-      <div class="text-muted mt-1">Manage all leads in progress (Admin Only)</div>
+      <div class="text-muted mt-1">Manage all active leads (Admin Only)</div>
     </div>
     <div class="col-auto">
       <div class="btn-list">
@@ -33,7 +33,7 @@
   </div>
 </div>
 
-<!-- Filters Card -->
+<!-- Filters -->
 <div class="card mb-4">
   <div class="card-header">
     <h3 class="card-title">Filters</h3>
@@ -47,6 +47,7 @@
           <option value="Pending Outreach" {% if request.args.get('status') == 'Pending Outreach' %}selected{% endif %}>Pending Outreach</option>
           <option value="Texted / Call Done" {% if request.args.get('status') == 'Texted / Call Done' %}selected{% endif %}>Texted / Call Done</option>
           <option value="In Progress" {% if request.args.get('status') == 'In Progress' %}selected{% endif %}>In Progress</option>
+          <option value="Done" {% if request.args.get('status') == 'Done' %}selected{% endif %}>Done (Move to Closed Leads)</option>
         </select>
       </div>
       <div class="col-md-4">
@@ -68,18 +69,13 @@
   </div>
 </div>
 
+<!-- Leads Table -->
 <div class="card">
   <div class="card-header">
-    <h3 class="card-title">Leads in Progress</h3>
+    <h3 class="card-title">All Active Leads</h3>
     <div class="card-actions">
       <div class="text-muted">
         Showing {{ leads|length }} lead{% if leads|length != 1 %}s{% endif %}
-        {% if request.args.get('status') != 'all' and request.args.get('status') %}
-          • Status: {{ request.args.get('status') }}
-        {% endif %}
-        {% if request.args.get('department') != 'all' and request.args.get('department') %}
-          • Department: {{ request.args.get('department') }}
-        {% endif %}
       </div>
     </div>
   </div>
@@ -104,76 +100,27 @@
         <tbody>
           {% for lead in leads %}
           <tr>
+            <td><span class="text-muted">#{{ lead.id }}</span></td>
             <td>
-              <span class="text-muted">#{{ lead.id }}</span>
+              <div class="font-weight-medium">{{ lead.customer_name }}</div>
             </td>
+            <td>{{ lead.customer_number }}</td>
+            <td><span class="badge bg-primary-lt">{{ lead.department }}</span></td>
+            <td>{{ lead.added_by }}</td>
+            <td>{{ lead.created_at.strftime('%b %d, %Y') if lead.created_at else 'N/A' }}</td>
+            
             <td>
-              <div class="d-flex align-items-center">
-                <span class="avatar avatar-sm bg-primary-lt me-3">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                    <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-                    <path d="M12 7m-4 0a4 4 0 1 0 8 0a4 4 0 1 0 -8 0" />
-                    <path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" />
-                  </svg>
-                </span>
-                <div>
-                  <div class="font-weight-medium">{{ lead.customer_name }}</div>
-                  <div class="text-muted small">{{ lead.email }}</div>
-                </div>
-              </div>
-            </td>
-            <td>
-              <div class="text-muted">
-                <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-phone" width="16" height="16" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;">
-                  <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-                  <path d="M5 4h4l2 5l-2.5 1.5a11 11 0 0 0 5 5l1.5 -2.5l5 2v4a2 2 0 0 1 -2 2a16 16 0 0 1 -15 -15a2 2 0 0 1 2 -2" />
-                </svg>
-                {{ lead.customer_number }}
-              </div>
-            </td>
-            <td>
-              <span class="badge bg-primary-lt">{{ lead.department }}</span>
-            </td>
-            <td>
-              <div class="d-flex align-items-center">
-                <span class="avatar avatar-xs bg-green-lt me-2"></span>
-                {{ lead.added_by }}
-              </div>
-            </td>
-            <td>
-              <div class="text-muted small">
-                <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar" width="16" height="16" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;">
-                  <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-                  <path d="M4 7a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v12a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2v-12z" />
-                  <path d="M16 3v4" />
-                  <path d="M8 3v4" />
-                  <path d="M4 11h16" />
-                  <path d="M11 15h1" />
-                  <path d="M12 15v3" />
-                </svg>
-                {{ lead.created_at.strftime('%b %d, %Y') if lead.created_at else 'N/A' }}
-              </div>
-            </td>
-            <td>
-              <!-- Admin Status Dropdown -->
-              <form method="POST" action="{{ url_for('update_status', lead_id=lead.id) }}" class="d-inline">
+              <!-- Admin Dropdown -->
+              <form method="POST" action="{{ url_for('update_status', lead_id=lead.id) }}">
                 <select name="status" class="form-select form-select-sm" onchange="this.form.submit()">
                   <option value="Pending Outreach" {% if lead.status == "Pending Outreach" %}selected{% endif %}>Pending Outreach</option>
                   <option value="Texted / Call Done" {% if lead.status == "Texted / Call Done" %}selected{% endif %}>Texted / Call Done</option>
                   <option value="In Progress" {% if lead.status == "In Progress" %}selected{% endif %}>In Progress</option>
-                  <option value="Done" {% if lead.status == "Done" %}selected{% endif %}>Done (Move to Closed)</option>
+                  <option value="Done" {% if lead.status == "Done" %}selected{% endif %}>Done (Move to Closed Leads)</option>
                 </select>
-                {% if lead.status == "Done" %}
-                <select name="sub_status" class="form-select form-select-sm mt-1">
-                  <option value="">Select Sub-status</option>
-                  <option value="Completed" {% if lead.sub_status == "Completed" %}selected{% endif %}>Completed</option>
-                  <option value="Not Interested" {% if lead.sub_status == "Not Interested" %}selected{% endif %}>Not Interested</option>
-                  <option value="Follow-up Required" {% if lead.sub_status == "Follow-up Required" %}selected{% endif %}>Follow-up Required</option>
-                </select>
-                {% endif %}
+                <input type="hidden" name="origin" value="all_leads">
               </form>
 
-              <!-- Status Badge -->
               <div class="mt-1">
                 {% if lead.status == "Pending Outreach" %}
                   <span class="badge bg-info-lt">Pending Outreach</span>
@@ -184,53 +131,27 @@
                 {% elif lead.status == "Done" %}
                   <span class="badge bg-success-lt">Done</span>
                 {% endif %}
-                {% if lead.sub_status %}
-                  <div class="text-muted small">{{ lead.sub_status }}</div>
-                {% endif %}
               </div>
             </td>
+
             <td>
               {% if lead.attachment_filename %}
-                <a href="{{ url_for('uploaded_file', filename=lead.attachment_filename) }}" target="_blank" class="btn btn-sm btn-outline-primary">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-paperclip" width="16" height="16" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                    <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-                    <path d="M15 7l-6.5 6.5a1.5 1.5 0 0 0 3 3l6.5 -6.5a3 3 0 0 0 -6 -6l-6.5 6.5a4.5 4.5 0 0 0 9 9l6.5 -6.5" />
-                  </svg>
-                  View
-                </a>
+                <a href="{{ url_for('uploaded_file', filename=lead.attachment_filename) }}" target="_blank">View</a>
               {% else %}
                 <span class="text-muted">No file</span>
               {% endif %}
             </td>
+
             <td>
-              <div class="btn-list">
-                <a href="#" class="btn btn-sm btn-outline-info" data-bs-toggle="modal" data-bs-target="#viewLead{{ lead.id }}">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-eye" width="16" height="16" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                    <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-                    <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" />
-                    <path d="M21 12c-2.4 4 -5.4 6 -9 6c-3.6 0 -6.6 -2 -9 -6c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6" />
-                  </svg>
-                </a>
-                
-                <!-- DELETE BUTTON -->
-                <form action="{{ url_for('delete_lead', lead_id=lead.id) }}" method="POST" style="display: inline;">
-                  <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Delete lead #{{ lead.id }}?');">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-trash" width="16" height="16" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                      <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-                      <path d="M4 7l16 0" />
-                      <path d="M10 11l0 6" />
-                      <path d="M14 11l0 6" />
-                      <path d="M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2 -2l1 -12" />
-                      <path d="M9 7v-3a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v3" />
-                    </svg>
-                  </button>
-                </form>
-              </div>
+              <a href="#" class="btn btn-sm btn-outline-info" data-bs-toggle="modal" data-bs-target="#viewLead{{ lead.id }}">View</a>
+              <form action="{{ url_for('delete_lead', lead_id=lead.id) }}" method="POST" style="display:inline;">
+                <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Delete lead #{{ lead.id }}?');">Delete</button>
+              </form>
             </td>
           </tr>
 
-          <!-- View Lead Modal -->
-          <div class="modal modal-blur fade" id="viewLead{{ lead.id }}" tabindex="-1">
+          <!-- View Modal -->
+          <div class="modal fade" id="viewLead{{ lead.id }}" tabindex="-1">
             <div class="modal-dialog modal-lg">
               <div class="modal-content">
                 <div class="modal-header">
@@ -238,74 +159,12 @@
                   <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                  <div class="row">
-                    <div class="col-md-6">
-                      <div class="mb-3">
-                        <label class="form-label">Customer Number</label>
-                        <div class="form-control-plaintext">{{ lead.customer_number }}</div>
-                      </div>
-                    </div>
-                    <div class="col-md-6">
-                      <div class="mb-3">
-                        <label class="form-label">Department</label>
-                        <div class="form-control-plaintext">{{ lead.department }}</div>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div class="row">
-                    <div class="col-md-6">
-                      <div class="mb-3">
-                        <label class="form-label">Added By</label>
-                        <div class="form-control-plaintext">{{ lead.added_by }}</div>
-                      </div>
-                    </div>
-                    <div class="col-md-6">
-                      <div class="mb-3">
-                        <label class="form-label">Status</label>
-                        <div class="form-control-plaintext">
-                          {{ lead.status }}{% if lead.sub_status %} - {{ lead.sub_status }}{% endif %}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div class="mb-3">
-                    <label class="form-label">Areas</label>
-                    <div class="form-control-plaintext">
-                      <strong>Main:</strong> {{ lead.main_area or 'N/A' }}<br>
-                      {% if lead.second_main_area %}<strong>2nd Main:</strong> {{ lead.second_main_area }}<br>{% endif %}
-                      <strong>Sub Location:</strong> {{ lead.sub_location or 'N/A' }}
-                    </div>
-                  </div>
-
-                  <div class="mb-3">
-                    <label class="form-label">Context / Service</label>
-                    <div class="form-control-plaintext">{{ lead.context_service or 'N/A' }}</div>
-                  </div>
-
-                  <div class="mb-3">
-                    <label class="form-label">Added On</label>
-                    <div class="form-control-plaintext">{{ lead.created_at.strftime('%b %d, %Y at %H:%M') if lead.created_at else 'N/A' }}</div>
-                  </div>
-
-                  {% if lead.attachment_filename %}
-                  <div class="mb-3">
-                    <label class="form-label">Attachment</label>
-                    <div>
-                      <a href="{{ url_for('uploaded_file', filename=lead.attachment_filename) }}" target="_blank" class="btn btn-sm btn-outline-primary">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-paperclip" width="16" height="16" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                          <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-                          <path d="M15 7l-6.5 6.5a1.5 1.5 0 0 0 3 3l6.5 -6.5a3 3 0 0 0 -6 -6l-6.5 6.5a4.5 4.5 0 0 0 9 9l6.5 -6.5" />
-                        </svg>
-                        View Attachment
-                      </a>
-                    </div>
-                  </div>
-                  {% endif %}
-                </div>
-                <div class="modal-footer">
-                  <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                  <p><strong>Contact:</strong> {{ lead.customer_number }}</p>
+                  <p><strong>Department:</strong> {{ lead.department }}</p>
+                  <p><strong>Service:</strong> {{ lead.context_service or 'N/A' }}</p>
+                  <p><strong>Status:</strong> {{ lead.status }}</p>
+                  <p><strong>Added By:</strong> {{ lead.added_by }}</p>
+                  <p><strong>Date:</strong> {{ lead.created_at.strftime('%b %d, %Y %H:%M') if lead.created_at else 'N/A' }}</p>
                 </div>
               </div>
             </div>
@@ -315,37 +174,9 @@
       </table>
     </div>
     {% else %}
-    <div class="empty">
-      <div class="empty-icon">
-        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-users" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-          <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-          <path d="M9 7m-4 0a4 4 0 1 0 8 0a4 4 0 1 0 -8 0" />
-          <path d="M3 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" />
-          <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-          <path d="M21 21v-2a4 4 0 0 0 -3 -3.85" />
-        </svg>
-      </div>
+    <div class="empty text-center">
       <p class="empty-title">No leads found</p>
-      <p class="empty-subtitle text-muted">
-        {% if request.args.get('status') or request.args.get('department') %}
-          No leads match your current filters. Try adjusting your criteria.
-        {% else %}
-          There are no leads in progress at the moment.
-        {% endif %}
-      </p>
-      <div class="empty-action">
-        <a href="{{ url_for('add_lead') }}" class="btn btn-primary">
-          <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-plus" width="16" height="16" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-            <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-            <path d="M12 5l0 14" />
-            <path d="M5 12l14 0" />
-          </svg>
-          Add New Lead
-        </a>
-        {% if request.args.get('status') or request.args.get('department') %}
-        <a href="{{ url_for('view_leads') }}" class="btn btn-outline-secondary">Clear Filters</a>
-        {% endif %}
-      </div>
+      <p class="empty-subtitle text-muted">No active leads available.</p>
     </div>
     {% endif %}
   </div>
