@@ -525,6 +525,8 @@ def dashboard():
             is_admin=False
         )
 
+from sqlalchemy import extract
+
 @app.route("/analytics")
 @login_required
 def analytics():
@@ -532,17 +534,16 @@ def analytics():
         flash("❌ Only admins can view analytics.", "danger")
         return redirect(url_for("dashboard"))
 
-    # Real data calculations
     today = date.today()
 
-    # Today's leads
+    # --- Today's leads ---
     today_leads = Lead.query.filter(db.func.date(Lead.created_at) == today).count()
 
-    # Weekly stats (real data for last 4 weeks)
+    # --- Weekly stats (last 4 weeks) ---
     week_leads = []
     week_labels = []
     for i in range(4):
-        week_start = today - timedelta(weeks=(3-i), days=today.weekday())
+        week_start = today - timedelta(weeks=(3 - i), days=today.weekday())
         week_end = week_start + timedelta(days=6)
         week_count = Lead.query.filter(
             Lead.created_at >= week_start,
@@ -551,31 +552,33 @@ def analytics():
         week_leads.append(week_count)
         week_labels.append(week_start.strftime('%b %d'))
 
-    # Monthly stats (real data for last 6 months)
+    # --- Monthly stats (last 6 months) ---
     month_leads = []
     month_labels = []
     for i in range(6):
-        month_date = today - relativedelta(months=(5-i))
+        month_date = today - relativedelta(months=(5 - i))
+        year = month_date.year
+        month = month_date.month
+
+        # Works for both SQLite and Postgres
         month_count = Lead.query.filter(
-            db.func.strftime('%Y-%m', Lead.created_at) == month_date.strftime('%Y-%m')
+            extract('year', Lead.created_at) == year,
+            extract('month', Lead.created_at) == month
         ).count()
+
         month_leads.append(month_count)
         month_labels.append(month_date.strftime('%b %Y'))
 
-    # Department stats (real data)
-    all_dept_stats = db.session.query(Lead.department, db.func.count(Lead.id))\
-        .group_by(Lead.department)\
-        .all()
+    # --- Department stats ---
+    dept_stats = db.session.query(Lead.department, db.func.count(Lead.id)) \
+        .group_by(Lead.department).all()
 
-    confirmed_dept_stats = db.session.query(Lead.department, db.func.count(Lead.id))\
-        .filter_by(status="Done")\
-        .group_by(Lead.department)\
-        .all()
+    confirmed_dept_stats = db.session.query(Lead.department, db.func.count(Lead.id)) \
+        .filter_by(status="Done").group_by(Lead.department).all()
 
-    # Status distribution
-    status_stats = db.session.query(Lead.status, db.func.count(Lead.id))\
-        .group_by(Lead.status)\
-        .all()
+    # --- Status stats ---
+    status_stats = db.session.query(Lead.status, db.func.count(Lead.id)) \
+        .group_by(Lead.status).all()
 
     return render_template(
         "analytics.html",
@@ -584,7 +587,7 @@ def analytics():
         week_labels=week_labels,
         month_leads=month_leads,
         month_labels=month_labels,
-        dept_stats=all_dept_stats,
+        dept_stats=dept_stats,
         confirmed_dept_stats=confirmed_dept_stats,
         status_stats=status_stats,
         now=datetime.now()
