@@ -280,8 +280,8 @@ def view_leads():
     if status_filter != 'all':
         query = query.filter(Lead.status == status_filter)
     else:
-        # Default: Show only second phase leads
-        second_phase_statuses = ["Pending Outreach", "Texted / Call Done", "In Progress"]
+        # Default: Show second phase leads INCLUDING "Done" status
+        second_phase_statuses = ["Pending Outreach", "Texted / Call Done", "In Progress", "Done"]
         query = query.filter(Lead.status.in_(second_phase_statuses))
 
     if department_filter != 'all':
@@ -297,8 +297,9 @@ def edit_lead(lead_id):
     lead = Lead.query.get_or_404(lead_id)
 
     # Check if user is allowed to edit this lead
-    if current_user.role != "admin" and (lead.user_id != current_user.id or lead.status != "Issue in Lead"):
-        flash("⚠️ You can only edit your own issue leads.", "danger")
+    # Users can only edit their own leads (regardless of status)
+    if current_user.role != "admin" and lead.user_id != current_user.id:
+        flash("⚠️ You can only edit your own leads.", "danger")
         return redirect(url_for("dashboard"))
 
     if request.method == "POST":
@@ -349,7 +350,8 @@ def resolve_lead(lead_id):
     lead = Lead.query.get_or_404(lead_id)
 
     # Check if user is allowed to resolve this lead
-    if current_user.role != "admin" and (lead.user_id != current_user.id or lead.status != "Issue in Lead"):
+    # Users can only resolve their own issue leads
+    if current_user.role != "admin" and lead.user_id != current_user.id:
         flash("⚠️ You can only resolve your own issue leads.", "danger")
         return redirect(url_for("dashboard"))
 
@@ -368,22 +370,24 @@ def update_status(lead_id):
     if current_user.role == "admin":
         new_status = request.form["status"]
 
-        # Validate allowed statuses (simple validation)
+        # Validate allowed statuses
         allowed_statuses = ["New Lead", "Issue in Lead", "Updated", "Pending Outreach", "Texted / Call Done", "In Progress", "Done"]
         if new_status not in allowed_statuses:
             flash("⚠️ Invalid status for this lead.", "warning")
             return redirect(request.referrer or url_for("view_leads"))
 
         old_status = lead.status
-        # When admin marks Done -> set Done and record closed info
+        
+        # Update lead status
+        lead.status = new_status
+        
+        # When admin marks Done -> set closed info
         if new_status == "Done":
-            lead.status = "Done"
             lead.sub_status = request.form.get("sub_status")
             lead.closed_at = datetime.utcnow()
             lead.closed_by = current_user.id
-            flash("✅ Lead marked as Done and moved to Closed Leads.", "success")
+            flash("✅ Lead marked as Done.", "success")
         else:
-            lead.status = new_status
             # reset close metadata if moving away from Done
             if old_status == "Done":
                 lead.closed_at = None
@@ -395,10 +399,10 @@ def update_status(lead_id):
     else:
         flash("⚠️ You are not allowed to update this lead.", "danger")
 
-    # Redirect based on phase
+    # Redirect based on current status (not new_status, as it's already updated)
     if lead.status in ["New Lead", "Issue in Lead", "Updated"]:
         return redirect(url_for("leads"))
-    elif lead.status in ["Pending Outreach", "Texted / Call Done", "In Progress"]:
+    elif lead.status in ["Pending Outreach", "Texted / Call Done", "In Progress", "Done"]:
         return redirect(url_for("view_leads"))
     else:
         return redirect(url_for("closed_leads"))
@@ -409,7 +413,8 @@ from datetime import datetime
 @app.route("/closed_leads")
 @login_required
 def closed_leads():
-    closed = Lead.query.filter_by(status="Closed").all()
+    # Filter by "Done" status instead of "Closed"
+    closed = Lead.query.filter_by(status="Done").all()
     total_leads = len(closed)
 
     # --- Top Performers ---
@@ -818,22 +823,26 @@ def timedelta_filter(value):
     else:
         return "Just now"
 
-# Create admin user on startup
-def create_admin_user():
-    with app.app_context():
-        db.create_all()
-        admin = User.query.filter_by(username='admin').first()
-        if not admin:
-            admin_user = User(
-                username='admin',
-                password=generate_password_hash('admin123', method="pbkdf2:sha256"),
-                role='admin'
-            )
-            db.session.add(admin_user)
-            db.session.commit()
-            print("Admin user created")
+# ---------------------------
+# Database Initialization
+# ---------------------------
+@app.before_first_request
+def initialize_database():
+    db.create_all()
+    admin = User.query.filter_by(username='admin').first()
+    if not admin:
+        admin_user = User(
+            username='admin',
+            password=generate_password_hash('admin123', method="pbkdf2:sha256"),
+            role='admin'
+        )
+        db.session.add(admin_user)
+        db.session.commit()
+        print("✅ Admin user created in database")
 
+# ---------------------------
+# App Entry Point
+# ---------------------------
 if __name__ == '__main__':
-    create_admin_user()
     debug_mode = os.environ.get('DEBUG', 'False').lower() == 'true'
     app.run(debug=debug_mode, host='0.0.0.0', port=5000)
