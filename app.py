@@ -127,20 +127,28 @@ def home():
     else:
         return redirect(url_for("login"))
 
+# -------------------------
+# Register (Admin-only)
+# -------------------------
 @app.route("/register", methods=["GET", "POST"])
+@login_required   # make sure only logged-in users can access
 def register():
-    if current_user.is_authenticated:
-        return redirect(url_for('dashboard'))
+    # ✅ Only admins allowed
+    if current_user.role != "admin":
+        flash("⛔ You are not authorized to access this page.", "danger")
+        return redirect(url_for("dashboard"))
 
     if request.method == "POST":
         username = request.form["username"].strip()
         password = request.form["password"]
         role = request.form.get("role", "user")
 
+        # Check if username already exists
         if User.query.filter_by(username=username).first():
             flash("⚠️ Username already exists.", "warning")
             return redirect(url_for("register"))
 
+        # Create new user
         new_user = User(
             username=username,
             password=generate_password_hash(password, method="pbkdf2:sha256"),
@@ -148,10 +156,12 @@ def register():
         )
         db.session.add(new_user)
         db.session.commit()
-        flash("✅ Registration successful. You can now log in.", "success")
-        return redirect(url_for("login"))
+        flash(f"✅ User '{username}' created successfully!", "success")
+        return redirect(url_for("dashboard"))
 
     return render_template("register.html")
+
+
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
@@ -280,9 +290,9 @@ def view_leads():
     if status_filter != 'all':
         query = query.filter(Lead.status == status_filter)
     else:
-        # Default: Show second phase leads INCLUDING "Done" status
-        second_phase_statuses = ["Pending Outreach", "Texted / Call Done", "In Progress", "Done"]
-        query = query.filter(Lead.status.in_(second_phase_statuses))
+        # ✅ Default: Show only active leads (exclude Done)
+        active_statuses = ["Pending Outreach", "Texted / Call Done", "In Progress"]
+        query = query.filter(Lead.status.in_(active_statuses))
 
     if department_filter != 'all':
         query = query.filter(Lead.department == department_filter)
@@ -290,6 +300,7 @@ def view_leads():
     leads = query.all()
 
     return render_template("view_leads.html", leads=leads, departments=DEPARTMENTS)
+
 
 @app.route("/edit_lead/<int:lead_id>", methods=["GET", "POST"])
 @login_required
@@ -367,45 +378,70 @@ def resolve_lead(lead_id):
 def update_status(lead_id):
     lead = Lead.query.get_or_404(lead_id)
 
-    if current_user.role == "admin":
-        new_status = request.form["status"]
+    if current_user.role != "admin":
+        flash("⚠️ You are not allowed to update this lead.", "danger")
+        return redirect(request.referrer or url_for("dashboard"))
 
-        # Validate allowed statuses
-        allowed_statuses = ["New Lead", "Issue in Lead", "Updated", "Pending Outreach", "Texted / Call Done", "In Progress", "Done"]
-        if new_status not in allowed_statuses:
-            flash("⚠️ Invalid status for this lead.", "warning")
-            return redirect(request.referrer or url_for("view_leads"))
+    new_status = request.form.get("status", "").strip()
+    origin = request.form.get("origin", "").strip()  # "my_leads" or "all_leads"
 
-        old_status = lead.status
-        
-        # Update lead status
-        lead.status = new_status
-        
-        # When admin marks Done -> set closed info
+    # —— From MY LEADS (phase 1) ——
+    if origin == "my_leads":
+        # Allowed on My Leads
+        allowed = {"New Lead", "Issue in Lead", "Updated", "Done"}
+        if new_status not in allowed:
+            flash("⚠️ Invalid status for this page.", "warning")
+            return redirect(url_for("leads"))
+
         if new_status == "Done":
-            lead.sub_status = request.form.get("sub_status")
+            # Move into All Leads pipeline at its first step
+            lead.status = "Pending Outreach"
+            lead.closed_at = None
+            lead.closed_by = None
+            lead.sub_status = None
+            db.session.commit()
+            flash("✅ Lead moved to All Leads (Pending Outreach).", "success")
+            return redirect(url_for("leads"))
+        else:
+            lead.status = new_status
+            # ensure not closed
+            lead.closed_at = None
+            lead.closed_by = None
+            lead.sub_status = None
+            db.session.commit()
+            flash("✅ Lead status updated.", "success")
+            return redirect(url_for("leads"))
+
+    # —— From ALL LEADS (phase 2) ——
+    if origin == "all_leads":
+        # Allowed on All Leads
+        allowed = {"Pending Outreach", "Texted / Call Done", "In Progress", "Done"}
+        if new_status not in allowed:
+            flash("⚠️ Invalid status for this page.", "warning")
+            return redirect(url_for("view_leads"))
+
+        if new_status == "Done":
+            # Close it
+            lead.status = "Done"
             lead.closed_at = datetime.utcnow()
             lead.closed_by = current_user.id
-            flash("✅ Lead marked as Done.", "success")
+            lead.sub_status = None  # we don't use sub-status anymore
+            db.session.commit()
+            flash("✅ Lead moved to Closed Leads.", "success")
         else:
-            # reset close metadata if moving away from Done
-            if old_status == "Done":
-                lead.closed_at = None
-                lead.closed_by = None
-            lead.sub_status = request.form.get("sub_status") if new_status == "Updated" else None
+            # Keep it in All Leads swimlane
+            lead.status = new_status
+            lead.closed_at = None
+            lead.closed_by = None
+            lead.sub_status = None
+            db.session.commit()
             flash("✅ Lead status updated.", "success")
 
-        db.session.commit()
-    else:
-        flash("⚠️ You are not allowed to update this lead.", "danger")
-
-    # Redirect based on current status (not new_status, as it's already updated)
-    if lead.status in ["New Lead", "Issue in Lead", "Updated"]:
-        return redirect(url_for("leads"))
-    elif lead.status in ["Pending Outreach", "Texted / Call Done", "In Progress", "Done"]:
         return redirect(url_for("view_leads"))
-    else:
-        return redirect(url_for("closed_leads"))
+
+    # Fallback (no origin provided)
+    flash("⚠️ Missing origin. Please update from My Leads or All Leads.", "warning")
+    return redirect(request.referrer or url_for("dashboard"))
 
 from collections import Counter
 from datetime import datetime
