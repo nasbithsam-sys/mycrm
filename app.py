@@ -1,11 +1,17 @@
 import os
 import csv
 import io
+import uuid
+import re
+import time
+import pyotp
 from datetime import datetime, date, timedelta
-from werkzeug.utils import secure_filename
+from functools import wraps
+from collections import Counter
+
 from flask import (
     Flask, render_template, redirect, url_for, request, flash,
-    abort, send_from_directory, Response, make_response
+    send_from_directory, Response, make_response, session
 )
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import (
@@ -16,16 +22,21 @@ from flask_login import (
     logout_user,
     current_user,
 )
+from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash, check_password_hash
 from dateutil.relativedelta import relativedelta
+from sqlalchemy import cast, Date, extract
+from sqlalchemy.orm import joinedload
 
 # ---------------------------
 # App Config
 # ---------------------------
 app = Flask(__name__)
-
-# Use environment variable for secret key with fallback
+import secrets
+app.config["SECRET_KEY"] = secrets.token_hex(16)
 app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "dev-secret-key-change-in-production")
+app.config["SESSION_PERMANENT"] = False
+app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(minutes=30)  # auto logout after 30 mins
 
 # Use PostgreSQL in production, SQLite locally
 if os.environ.get("DATABASE_URL"):
@@ -37,7 +48,7 @@ app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
 # File upload configuration
 app.config['UPLOAD_FOLDER'] = 'uploads'
-app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
+app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB
 app.config['ALLOWED_EXTENSIONS'] = {'png', 'jpg', 'jpeg', 'gif', 'pdf', 'doc', 'docx'}
 
 db = SQLAlchemy(app)
@@ -46,16 +57,39 @@ login_manager.login_view = "login"
 login_manager.login_message = "Please log in to access this page."
 login_manager.login_message_category = "warning"
 
-# Create uploads folder if it doesn't exist
 os.makedirs('uploads', exist_ok=True)
 
-# Your department names
+# ---------------------------
+# Helpers
+# ---------------------------
 DEPARTMENTS = [
     "Facebook lead",
     "ND Inbound",
     "ND Tech & Old Customer Reference",
     "ND General"
 ]
+
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in app.config['ALLOWED_EXTENSIONS']
+
+def normalize_phone(num: str) -> str:
+    digits = re.sub(r'\D+', '', num)
+    if digits.startswith('92'):
+        return '+' + digits
+    if digits.startswith('0'):
+        return '+92' + digits[1:]
+    if not digits.startswith('+'):
+        return '+' + digits
+    return digits
+
+def admin_required(view):
+    @wraps(view)
+    def wrapped(*args, **kwargs):
+        if not current_user.is_authenticated or current_user.role != "admin":
+            flash("❌ Access denied. Admins only.", "danger")
+            return redirect(url_for("dashboard"))
+        return view(*args, **kwargs)
+    return wrapped
 
 # ---------------------------
 # Models
@@ -65,35 +99,23 @@ class User(UserMixin, db.Model):
     username = db.Column(db.String(100), unique=True, nullable=False)
     password = db.Column(db.String(200), nullable=False)
     role = db.Column(db.String(20), default="user")  # admin / user
+    otp_secret = db.Column(db.String(32), nullable=True)  # per-user TOTP secret
+    otp_verified = db.Column(db.Boolean, default=False)   # per-login verified flag
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
 class Lead(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(150), nullable=False)
-    email = db.Column(db.String(150), nullable=False)
     department = db.Column(db.String(100), nullable=False)
     status = db.Column(db.String(50), default="New Lead")
     sub_status = db.Column(db.String(50))
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
-    # Main user who created the lead
     user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
-    user = db.relationship(
-        "User",
-        foreign_keys=[user_id],
-        backref=db.backref("leads", lazy=True)
-    )
+    user = db.relationship("User", foreign_keys=[user_id], backref=db.backref("leads", lazy=True))
 
-    # If you have another FK like "assigned_to"
     assigned_to = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=True)
-    assignee = db.relationship(
-        "User",
-        foreign_keys=[assigned_to],
-        backref=db.backref("assigned_leads", lazy=True)
-    )
+    assignee = db.relationship("User", foreign_keys=[assigned_to], backref=db.backref("assigned_leads", lazy=True))
 
-
-    # New fields for your requirements
     customer_name = db.Column(db.String(150), nullable=False)
     customer_number = db.Column(db.String(20), nullable=False)
     context_service = db.Column(db.Text, nullable=False)
@@ -103,7 +125,6 @@ class Lead(db.Model):
     attachment_filename = db.Column(db.String(200))
     added_by = db.Column(db.String(100), nullable=False)
 
-    # Closed/archiving fields
     closed_at = db.Column(db.DateTime, nullable=True)
     closed_by = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=True)
     closed_by_user = db.relationship("User", foreign_keys=[closed_by], backref="closed_leads")
@@ -113,106 +134,146 @@ class Lead(db.Model):
 def load_user(user_id):
     return User.query.get(int(user_id))
 
-def allowed_file(filename):
-    return '.' in filename and \
-           filename.rsplit('.', 1)[1].lower() in app.config['ALLOWED_EXTENSIONS']
+# ---------------------------
+# OTP Enforcement
+# ---------------------------
+@app.before_request
+def enforce_otp():
+    # allow static and error handlers
+    if request.endpoint in ("static", None):
+        return
+
+    # not logged in → must go to login
+    if not current_user.is_authenticated:
+        if request.endpoint not in ("login", "register"):
+            return redirect(url_for("login"))
+        return
+
+    # logged in but not OTP verified → must go to verify_otp
+    if current_user.is_authenticated and not current_user.otp_verified:
+        if request.endpoint not in ("verify_otp", "logout", "login"):
+            return redirect(url_for("verify_otp"))
 
 # ---------------------------
-# Routes
+# Auth & User Routes
 # ---------------------------
 @app.route("/")
 def home():
-    if current_user.is_authenticated:
-        return redirect(url_for("dashboard"))
-    else:
-        return redirect(url_for("login"))
+    return redirect(url_for("dashboard")) if current_user.is_authenticated else redirect(url_for("login"))
 
-# -------------------------
-# Register (Admin-only)
-# -------------------------
 @app.route("/register", methods=["GET", "POST"])
-@login_required   # make sure only logged-in users can access
+@login_required
+@admin_required
 def register():
-    # ✅ Only admins allowed
-    if current_user.role != "admin":
-        flash("⛔ You are not authorized to access this page.", "danger")
-        return redirect(url_for("dashboard"))
-
     if request.method == "POST":
         username = request.form["username"].strip()
         password = request.form["password"]
         role = request.form.get("role", "user")
 
-        # Check if username already exists
         if User.query.filter_by(username=username).first():
             flash("⚠️ Username already exists.", "warning")
             return redirect(url_for("register"))
 
-        # Create new user
+        # Generate OTP secret for this user
+        secret = pyotp.random_base32()
+
         new_user = User(
             username=username,
             password=generate_password_hash(password, method="pbkdf2:sha256"),
             role=role,
+            otp_secret=secret,
+            otp_verified=False
         )
         db.session.add(new_user)
         db.session.commit()
-        flash(f"✅ User '{username}' created successfully!", "success")
-        return redirect(url_for("dashboard"))
+
+        # Show OTP secret so user can add it to WinAuth (PC)
+        flash(f"✅ User '{username}' created successfully! OTP Secret: {secret}", "info")
+        return redirect(url_for("users"))
 
     return render_template("register.html")
 
-
-
 @app.route("/login", methods=["GET", "POST"])
 def login():
-    if current_user.is_authenticated:
-        return redirect(url_for('dashboard'))
+    if current_user.is_authenticated and current_user.otp_verified:
+        return redirect(url_for("dashboard"))
 
     if request.method == "POST":
         username = request.form["username"].strip()
         password = request.form["password"]
-
         user = User.query.filter_by(username=username).first()
+
         if not user or not check_password_hash(user.password, password):
             flash("❌ Invalid username or password.", "danger")
             return redirect(url_for("login"))
 
-        login_user(user)
-        flash(f"👋 Welcome back, {user.username}!", "success")
-        next_page = request.args.get('next')
-        return redirect(next_page) if next_page else redirect(url_for("dashboard"))
+        # Reset OTP on every login
+        user.otp_verified = False
+        db.session.commit()
+
+        # Login without "remember"
+        login_user(user, remember=False, fresh=True)
+
+        # ✅ Always go to OTP page right after login
+        return redirect(url_for("verify_otp"))
 
     return render_template("login.html")
 
 @app.route("/logout")
 @login_required
 def logout():
+    # reset OTP verification every logout
+    current_user.otp_verified = False
+    db.session.commit()
+
     logout_user()
     flash("👋 You have been logged out.", "info")
     return redirect(url_for("login"))
 
+@app.route("/verify_otp", methods=["GET", "POST"])
+@login_required
+def verify_otp():
+    # Safety: ensure the user actually has a secret
+    if not current_user.otp_secret:
+        current_user.otp_secret = pyotp.random_base32()
+        db.session.commit()
+        flash(f"ℹ️ OTP Secret generated for '{current_user.username}': {current_user.otp_secret}", "info")
+
+    if request.method == "POST":
+        code = request.form.get("otp", "").strip()
+        totp = pyotp.TOTP(current_user.otp_secret)
+
+        # Allow 1-step clock drift (valid_window=1) to avoid time skew issues
+        if totp.verify(code, valid_window=1):
+            current_user.otp_verified = True
+            db.session.commit()
+            flash("✅ OTP verified, welcome!", "success")
+            return redirect(url_for("dashboard"))
+        else:
+            flash("❌ Invalid OTP", "danger")
+
+    return render_template("verify_otp.html")
+
 @app.route("/users")
 @login_required
+@admin_required
 def users():
-    if current_user.role != "admin":
-        flash("❌ Access denied. Admins only.", "danger")
-        return redirect(url_for("dashboard"))
+    return render_template("users.html", users=User.query.all(), title="Users Management")
 
-    users_list = User.query.all()
-    return render_template("users.html", users=users_list, title="Users Management")
-
-# Add Lead route
 @app.route("/add_lead")
 @login_required
 def add_lead():
     return render_template("add_lead.html", departments=DEPARTMENTS)
 
+# ---------------------------
+# Leads (Create & List)
+# ---------------------------
 @app.route("/leads", methods=["GET", "POST"])
 @login_required
 def leads():
     if request.method == "POST":
         customer_name = request.form["customer_name"].strip()
-        customer_number = request.form["customer_number"].strip()
+        customer_number = normalize_phone(request.form["customer_number"].strip())
         context_service = request.form["context_service"].strip()
         department = request.form["department"]
         main_area = request.form["main_area"]
@@ -220,17 +281,11 @@ def leads():
         sub_location = request.form.get("sub_location", "")
         added_by = request.form["added_by"].strip()
 
-        # Check if lead with this customer number already exists
         if Lead.query.filter_by(customer_number=customer_number).first():
             flash("⚠️ Lead with this customer number already exists.", "warning")
             return redirect(url_for("leads"))
 
-        # Generate a unique email from customer number
-        email = f"customer_{customer_number.replace(' ', '_')}@example.com"
-
         new_lead = Lead(
-            name=customer_name,
-            email=email,
             department=department,
             status="New Lead",
             user_id=current_user.id,
@@ -243,107 +298,85 @@ def leads():
             added_by=added_by
         )
 
-        # Handle file attachment
         if 'attachment' in request.files:
             file = request.files['attachment']
             if file and file.filename != '':
                 if allowed_file(file.filename):
-                    filename = secure_filename(file.filename)
-                    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-                    filename = f"{timestamp}_{filename}"
+                    original = secure_filename(file.filename)
+                    unique_prefix = uuid.uuid4().hex
+                    filename = f"{datetime.now().strftime('%Y%m%d_%H%M%S')}_{unique_prefix}_{original}"
                     file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
                     file.save(file_path)
                     new_lead.attachment_filename = filename
                     flash("✅ File uploaded successfully!", "success")
                 else:
-                    flash("⚠️ Invalid file type. Allowed: images, PDF, DOC", "warning")
+                    flash("⚠️ Invalid file type.", "warning")
 
         db.session.add(new_lead)
         db.session.commit()
         flash("✅ Lead added successfully!", "success")
         return redirect(url_for("leads"))
 
-    # Filter: Show only initial phase leads (New Lead, Issue in Lead, Updated)
     initial_statuses = ["New Lead", "Issue in Lead", "Updated"]
     if current_user.role == "admin":
-        leads = Lead.query.filter(Lead.status.in_(initial_statuses)).all()
+        leads_list = Lead.query.filter(Lead.status.in_(initial_statuses)).all()
     else:
-        leads = Lead.query.filter_by(user_id=current_user.id).filter(Lead.status.in_(initial_statuses)).all()
+        leads_list = Lead.query.filter_by(user_id=current_user.id).filter(Lead.status.in_(initial_statuses)).all()
 
-    return render_template("leads.html", leads=leads, departments=DEPARTMENTS)
+    return render_template("leads.html", leads=leads_list, departments=DEPARTMENTS)
 
+# ---------------------------
+# Leads (Admin View & Edit)
+# ---------------------------
 @app.route("/view_leads")
 @login_required
+@admin_required
 def view_leads():
-    if current_user.role != "admin":
-        flash("❌ Only admins can view this page.", "danger")
-        return redirect(url_for("dashboard"))
-
-    # Get filter parameters
     status_filter = request.args.get('status', 'all')
     department_filter = request.args.get('department', 'all')
 
-    # Base query
     query = Lead.query
-
-    # Apply filters
     if status_filter != 'all':
         query = query.filter(Lead.status == status_filter)
     else:
-        # ✅ Default: Show only active leads (exclude Done)
         active_statuses = ["Pending Outreach", "Texted / Call Done", "In Progress"]
         query = query.filter(Lead.status.in_(active_statuses))
-
     if department_filter != 'all':
         query = query.filter(Lead.department == department_filter)
 
-    leads = query.all()
-
-    return render_template("view_leads.html", leads=leads, departments=DEPARTMENTS)
-
+    leads_data = query.all()
+    return render_template("view_leads.html", leads=leads_data, departments=DEPARTMENTS)
 
 @app.route("/edit_lead/<int:lead_id>", methods=["GET", "POST"])
 @login_required
 def edit_lead(lead_id):
     lead = Lead.query.get_or_404(lead_id)
 
-    # Check if user is allowed to edit this lead
-    # Users can only edit their own leads (regardless of status)
     if current_user.role != "admin" and lead.user_id != current_user.id:
         flash("⚠️ You can only edit your own leads.", "danger")
         return redirect(url_for("dashboard"))
 
     if request.method == "POST":
-        # Store old values for comparison
-        old_customer_name = lead.customer_name
-        old_customer_number = lead.customer_number
-        old_context_service = lead.context_service
-        old_department = lead.department
-        old_main_area = lead.main_area
-        old_second_main_area = lead.second_main_area
-        old_sub_location = lead.sub_location
+        old_values = {
+            "customer_name": lead.customer_name,
+            "customer_number": lead.customer_number,
+            "context_service": lead.context_service,
+            "department": lead.department,
+            "main_area": lead.main_area,
+            "second_main_area": lead.second_main_area,
+            "sub_location": lead.sub_location,
+        }
 
-        # Update lead fields
         lead.customer_name = request.form.get("customer_name", lead.customer_name)
-        lead.customer_number = request.form.get("customer_number", lead.customer_number)
+        lead.customer_number = normalize_phone(request.form.get("customer_number", lead.customer_number))
         lead.context_service = request.form.get("context_service", lead.context_service)
         lead.department = request.form.get("department", lead.department)
         lead.main_area = request.form.get("main_area", lead.main_area)
         lead.second_main_area = request.form.get("second_main_area", lead.second_main_area)
         lead.sub_location = request.form.get("sub_location", lead.sub_location)
 
-        # Check if any changes were made
-        changes_made = (
-            lead.customer_name != old_customer_name or
-            lead.customer_number != old_customer_number or
-            lead.context_service != old_context_service or
-            lead.department != old_department or
-            lead.main_area != old_main_area or
-            lead.second_main_area != old_second_main_area or
-            lead.sub_location != old_sub_location
-        )
+        changes_made = any(getattr(lead, k) != v for k, v in old_values.items())
 
-        # Auto-update status to "Updated" if changes were made
         if changes_made:
             lead.status = "Updated"
             flash("✏️ Lead updated successfully and status changed to 'Updated'.", "success")
@@ -360,16 +393,12 @@ def edit_lead(lead_id):
 def resolve_lead(lead_id):
     lead = Lead.query.get_or_404(lead_id)
 
-    # Check if user is allowed to resolve this lead
-    # Users can only resolve their own issue leads
     if current_user.role != "admin" and lead.user_id != current_user.id:
         flash("⚠️ You can only resolve your own issue leads.", "danger")
         return redirect(url_for("dashboard"))
 
-    # Update status to "Updated" when resolved
     lead.status = "Updated"
     db.session.commit()
-
     flash("✅ Lead resolved successfully! Status changed to 'Updated'.", "success")
     return redirect(url_for("dashboard"))
 
@@ -383,84 +412,64 @@ def update_status(lead_id):
         return redirect(request.referrer or url_for("dashboard"))
 
     new_status = request.form.get("status", "").strip()
-    origin = request.form.get("origin", "").strip()  # "my_leads" or "all_leads"
+    origin = request.form.get("origin", "").strip()
 
-    # —— From MY LEADS (phase 1) ——
     if origin == "my_leads":
-        # Allowed on My Leads
         allowed = {"New Lead", "Issue in Lead", "Updated", "Done"}
         if new_status not in allowed:
             flash("⚠️ Invalid status for this page.", "warning")
             return redirect(url_for("leads"))
 
         if new_status == "Done":
-            # Move into All Leads pipeline at its first step
             lead.status = "Pending Outreach"
             lead.closed_at = None
             lead.closed_by = None
             lead.sub_status = None
-            db.session.commit()
-            flash("✅ Lead moved to All Leads (Pending Outreach).", "success")
-            return redirect(url_for("leads"))
         else:
             lead.status = new_status
-            # ensure not closed
             lead.closed_at = None
             lead.closed_by = None
             lead.sub_status = None
-            db.session.commit()
-            flash("✅ Lead status updated.", "success")
-            return redirect(url_for("leads"))
+        db.session.commit()
+        flash("✅ Lead status updated.", "success")
+        return redirect(url_for("leads"))
 
-    # —— From ALL LEADS (phase 2) ——
     if origin == "all_leads":
-        # Allowed on All Leads
         allowed = {"Pending Outreach", "Texted / Call Done", "In Progress", "Done"}
         if new_status not in allowed:
             flash("⚠️ Invalid status for this page.", "warning")
             return redirect(url_for("view_leads"))
 
         if new_status == "Done":
-            # Close it
             lead.status = "Done"
             lead.closed_at = datetime.utcnow()
             lead.closed_by = current_user.id
-            lead.sub_status = None  # we don't use sub-status anymore
-            db.session.commit()
-            flash("✅ Lead moved to Closed Leads.", "success")
+            lead.sub_status = None
         else:
-            # Keep it in All Leads swimlane
             lead.status = new_status
             lead.closed_at = None
             lead.closed_by = None
             lead.sub_status = None
-            db.session.commit()
-            flash("✅ Lead status updated.", "success")
-
+        db.session.commit()
+        flash("✅ Lead status updated.", "success")
         return redirect(url_for("view_leads"))
 
-    # Fallback (no origin provided)
     flash("⚠️ Missing origin. Please update from My Leads or All Leads.", "warning")
     return redirect(request.referrer or url_for("dashboard"))
 
-from collections import Counter
-from datetime import datetime
-
+# ---------------------------
+# Closed Leads
+# ---------------------------
 @app.route("/closed_leads")
 @login_required
 def closed_leads():
-    # Filter by "Done" status instead of "Closed"
-    closed = Lead.query.filter_by(status="Done").all()
+    closed = Lead.query.options(joinedload(Lead.closed_by_user)).filter_by(status="Done").all()
     total_leads = len(closed)
 
-    # --- Top Performers ---
-    # Count closed leads by user
     user_counts = Counter(lead.closed_by_user.username if lead.closed_by_user else "Unknown" for lead in closed)
     top_labels = list(user_counts.keys())
     top_data = list(user_counts.values())
 
-    # --- Closure Trends ---
-    # Count closed leads per day
     date_counts = Counter(lead.closed_at.date() for lead in closed if lead.closed_at)
     trend_labels = sorted([d.strftime("%Y-%m-%d") for d in date_counts.keys()])
     trend_data = [date_counts[datetime.strptime(d, "%Y-%m-%d").date()] for d in trend_labels]
@@ -477,26 +486,22 @@ def closed_leads():
         trend_data=trend_data
     )
 
-
+# ---------------------------
+# Dashboard
+# ---------------------------
 @app.route("/dashboard")
 @login_required
 def dashboard():
+    today = date.today()
+
     if current_user.role == "admin":
-        # Admin dashboard
         total_leads = Lead.query.count()
         my_leads = Lead.query.filter_by(user_id=current_user.id).count()
+        new_today = Lead.query.filter(cast(Lead.created_at, Date) == today).count()
 
-        # Count leads created today
-        today = date.today()
-        new_today = Lead.query.filter(db.func.date(Lead.created_at) == today).count()
-
-        # Leads per department
-        dept_stats = db.session.query(Lead.department, db.func.count(Lead.id))\
-            .group_by(Lead.department)\
-            .all()
-
-        dept_labels = [d[0] for d in dept_stats] if dept_stats else []
-        dept_counts = [d[1] for d in dept_stats] if dept_stats else []
+        dept_stats = db.session.query(Lead.department, db.func.count(Lead.id)).group_by(Lead.department).all()
+        dept_labels = [d[0] for d in dept_stats]
+        dept_counts = [d[1] for d in dept_stats]
 
         return render_template(
             "dashboard.html",
@@ -509,45 +514,33 @@ def dashboard():
             is_admin=True
         )
     else:
-        # USER DASHBOARD - CORRECTED VERSION
-        today = date.today()
-
-        # Today's leads count (only leads created today for this user)
         today_leads = Lead.query.filter(
             Lead.user_id == current_user.id,
-            db.func.date(Lead.created_at) == today
+            cast(Lead.created_at, Date) == today
         ).count()
 
-        # Issue leads count (all time issue leads for this user)
         issue_leads = Lead.query.filter(
             Lead.user_id == current_user.id,
             Lead.status == 'Issue in Lead'
         ).count()
 
-        # Resolved today count (leads marked as done today)
         resolved_today = Lead.query.filter(
             Lead.user_id == current_user.id,
-            db.func.date(Lead.created_at) == today,
+            cast(Lead.created_at, Date) == today,
             Lead.status.in_(['Done', 'Texted / Call Done', 'Connected', 'Completed'])
         ).count()
 
-        # Today's leads list (only leads created today)
         today_leads_list = Lead.query.filter(
             Lead.user_id == current_user.id,
-            db.func.date(Lead.created_at) == today
+            cast(Lead.created_at, Date) == today
         ).order_by(Lead.created_at.desc()).all()
 
-        # Issue leads list (all issue leads for this user)
         issue_leads_list = Lead.query.filter(
             Lead.user_id == current_user.id,
             Lead.status == 'Issue in Lead'
         ).order_by(Lead.created_at.desc()).all()
 
-        # Recent leads for user (last 5 leads)
-        recent_leads = Lead.query.filter_by(user_id=current_user.id)\
-            .order_by(Lead.created_at.desc())\
-            .limit(5)\
-            .all()
+        recent_leads = Lead.query.filter_by(user_id=current_user.id).order_by(Lead.created_at.desc()).limit(5).all()
 
         return render_template(
             "dashboard.html",
@@ -561,25 +554,20 @@ def dashboard():
             is_admin=False
         )
 
-from sqlalchemy import extract
-
+# ---------------------------
+# Analytics
+# ---------------------------
 @app.route("/analytics")
 @login_required
+@admin_required
 def analytics():
-    if current_user.role != "admin":
-        flash("❌ Only admins can view analytics.", "danger")
-        return redirect(url_for("dashboard"))
-
     today = date.today()
 
-    # --- Today's leads ---
-    today_leads = Lead.query.filter(db.func.date(Lead.created_at) == today).count()
+    today_leads = Lead.query.filter(cast(Lead.created_at, Date) == today).count()
 
-    # --- Weekly stats (last 4 weeks) ---
-    week_leads = []
-    week_labels = []
+    week_leads, week_labels = [], []
     for i in range(4):
-        week_start = today - timedelta(weeks=(3 - i), days=today.weekday())
+        week_start = today - timedelta(days=today.weekday() + (3 - i) * 7)
         week_end = week_start + timedelta(days=6)
         week_count = Lead.query.filter(
             Lead.created_at >= week_start,
@@ -588,33 +576,20 @@ def analytics():
         week_leads.append(week_count)
         week_labels.append(week_start.strftime('%b %d'))
 
-    # --- Monthly stats (last 6 months) ---
-    month_leads = []
-    month_labels = []
+    month_leads, month_labels = [], []
     for i in range(6):
         month_date = today - relativedelta(months=(5 - i))
-        year = month_date.year
-        month = month_date.month
-
-        # Works for both SQLite and Postgres
+        year, month = month_date.year, month_date.month
         month_count = Lead.query.filter(
             extract('year', Lead.created_at) == year,
             extract('month', Lead.created_at) == month
         ).count()
-
         month_leads.append(month_count)
         month_labels.append(month_date.strftime('%b %Y'))
 
-    # --- Department stats ---
-    dept_stats = db.session.query(Lead.department, db.func.count(Lead.id)) \
-        .group_by(Lead.department).all()
-
-    confirmed_dept_stats = db.session.query(Lead.department, db.func.count(Lead.id)) \
-        .filter_by(status="Done").group_by(Lead.department).all()
-
-    # --- Status stats ---
-    status_stats = db.session.query(Lead.status, db.func.count(Lead.id)) \
-        .group_by(Lead.status).all()
+    dept_stats = db.session.query(Lead.department, db.func.count(Lead.id)).group_by(Lead.department).all()
+    confirmed_dept_stats = db.session.query(Lead.department, db.func.count(Lead.id)).filter_by(status="Done").group_by(Lead.department).all()
+    status_stats = db.session.query(Lead.status, db.func.count(Lead.id)).group_by(Lead.status).all()
 
     return render_template(
         "analytics.html",
@@ -629,33 +604,32 @@ def analytics():
         now=datetime.now()
     )
 
+# ---------------------------
+# File Uploads
+# ---------------------------
 @app.route('/uploads/<filename>')
 @login_required
 def uploaded_file(filename):
     return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
-# Export routes for CSV
+# ---------------------------
+# Export Routes
+# ---------------------------
 @app.route("/export_leads")
 @login_required
+@admin_required
 def export_leads():
-    if current_user.role != "admin":
-        flash("❌ Only admins can export leads.", "danger")
-        return redirect(url_for("dashboard"))
-
     leads = Lead.query.all()
 
     def generate():
-        data = []
-        data.append(['ID', 'Customer Name', 'Customer Number', 'Email', 'Department',
-                     'Status', 'Sub Status', 'Main Area', 'Second Area', 'Sub Location',
-                     'Context Service', 'Added By', 'Created Date'])
-
+        data = [['ID', 'Customer Name', 'Customer Number', 'Department',
+                 'Status', 'Sub Status', 'Main Area', 'Second Area', 'Sub Location',
+                 'Context Service', 'Added By', 'Created Date']]
         for lead in leads:
             data.append([
                 lead.id,
                 lead.customer_name,
                 lead.customer_number,
-                lead.email,
                 lead.department,
                 lead.status,
                 lead.sub_status or '',
@@ -666,7 +640,6 @@ def export_leads():
                 lead.added_by,
                 lead.created_at.strftime('%Y-%m-%d %H:%M')
             ])
-
         output = io.StringIO()
         writer = csv.writer(output)
         writer.writerows(data)
@@ -678,17 +651,12 @@ def export_leads():
 
 @app.route("/export_closed_leads")
 @login_required
+@admin_required
 def export_closed_leads():
-    # Only admins can export
-    if current_user.role != "admin":
-        flash("❌ Only admins can export reports.", "danger")
-        return redirect(url_for("closed_leads"))
-
     closed_leads = Lead.query.filter_by(status="Done").all()
-
     output = io.StringIO()
     writer = csv.writer(output)
-    writer.writerow(["ID", "Customer Name", "Customer Number", "Email", "Department", "Sub Status",
+    writer.writerow(["ID", "Customer Name", "Customer Number", "Department", "Sub Status",
                      "Main Area", "Second Area", "Sub Location", "Context Service", "Added By",
                      "Created Date", "Closed At", "Closed By"])
     for lead in closed_leads:
@@ -696,7 +664,6 @@ def export_closed_leads():
             lead.id,
             lead.customer_name,
             lead.customer_number,
-            lead.email,
             lead.department,
             lead.sub_status or '',
             lead.main_area or '',
@@ -708,19 +675,18 @@ def export_closed_leads():
             lead.closed_at.strftime('%Y-%m-%d %H:%M') if lead.closed_at else '',
             (lead.closed_by_user.username if lead.closed_by_user else '')
         ])
-
     response = make_response(output.getvalue())
     response.headers["Content-Disposition"] = f"attachment; filename=closed_leads_{datetime.now().strftime('%Y%m%d')}.csv"
     response.headers["Content-type"] = "text/csv"
     return response
 
+# ---------------------------
+# Archive / Delete / Reopen
+# ---------------------------
 @app.route("/archive_all_closed", methods=["POST"])
 @login_required
+@admin_required
 def archive_all_closed():
-    if current_user.role != "admin":
-        flash("❌ Only admins can archive leads.", "danger")
-        return redirect(url_for("closed_leads"))
-
     closed_leads = Lead.query.filter_by(status="Done", archived=False).all()
     for lead in closed_leads:
         lead.archived = True
@@ -735,8 +701,6 @@ def reopen_lead(lead_id):
     if lead.status != "Done":
         flash("⚠️ Lead is not closed.", "warning")
         return redirect(url_for("closed_leads"))
-
-    # reopen: set status back to a sensible one (New Lead). Adjust as needed.
     lead.status = "New Lead"
     lead.closed_at = None
     lead.closed_by = None
@@ -745,27 +709,15 @@ def reopen_lead(lead_id):
     flash("✅ Lead reopened.", "success")
     return redirect(url_for("closed_leads"))
 
-@app.route("/view_notes/<int:lead_id>")
-@login_required
-def view_notes(lead_id):
-    lead = Lead.query.get_or_404(lead_id)
-    # You don't have a Notes model — render a template where you can add notes UI later.
-    return render_template("notes.html", lead=lead)
-
 @app.route("/delete_lead_permanent/<int:lead_id>", methods=["POST"])
 @login_required
+@admin_required
 def delete_lead_permanent(lead_id):
-    if current_user.role != "admin":
-        flash("❌ Only admins can permanently delete leads.", "danger")
-        return redirect(url_for("closed_leads"))
-
     lead = Lead.query.get_or_404(lead_id)
-
     if lead.attachment_filename:
         file_path = os.path.join(app.config['UPLOAD_FOLDER'], lead.attachment_filename)
         if os.path.exists(file_path):
             os.remove(file_path)
-
     db.session.delete(lead)
     db.session.commit()
     flash("🗑️ Lead permanently deleted.", "success")
@@ -773,19 +725,13 @@ def delete_lead_permanent(lead_id):
 
 @app.route("/delete_lead/<int:lead_id>", methods=["POST"])
 @login_required
+@admin_required
 def delete_lead(lead_id):
-    if current_user.role != "admin":
-        flash("❌ Only admins can delete leads.", "danger")
-        return redirect(url_for("view_leads"))
-
     lead = Lead.query.get_or_404(lead_id)
-
-    # Delete attached file if exists
     if lead.attachment_filename:
         file_path = os.path.join(app.config['UPLOAD_FOLDER'], lead.attachment_filename)
         if os.path.exists(file_path):
             os.remove(file_path)
-
     db.session.delete(lead)
     db.session.commit()
     flash("🗑️ Lead deleted successfully.", "success")
@@ -794,21 +740,15 @@ def delete_lead(lead_id):
 @app.route("/delete_user/<int:user_id>", methods=["POST"])
 @login_required
 def delete_user(user_id):
-    if not current_user.is_authenticated:
-        flash("🔒 Please log in.", "warning")
-        return redirect(url_for("login"))
-
     user_to_delete = User.query.get_or_404(user_id)
-
     if current_user.role == "admin":
         if current_user.id == user_to_delete.id:
             flash("⚠️ Admins cannot delete their own account.", "warning")
             return redirect(url_for("users"))
-        else:
-            db.session.delete(user_to_delete)
-            db.session.commit()
-            flash(f"🗑️ User {user_to_delete.username} deleted successfully.", "success")
-            return redirect(url_for("users"))
+        db.session.delete(user_to_delete)
+        db.session.commit()
+        flash(f"🗑️ User {user_to_delete.username} deleted successfully.", "success")
+        return redirect(url_for("users"))
     else:
         if current_user.id == user_to_delete.id:
             db.session.delete(user_to_delete)
@@ -841,16 +781,13 @@ def unauthorized(e):
 # ---------------------------
 @app.template_filter('datetimeformat')
 def datetimeformat(value, format='%Y-%m-%d %H:%M'):
-    if value is None:
-        return ""
-    return value.strftime(format)
+    return value.strftime(format) if value else ""
 
 @app.template_filter('timedelta')
 def timedelta_filter(value):
     if value is None:
         return ""
-    now = datetime.now()
-    diff = now - value
+    diff = datetime.now() - value
     if diff.days > 0:
         return f"{diff.days} day{'s' if diff.days != 1 else ''} ago"
     elif diff.seconds > 3600:
@@ -867,16 +804,17 @@ def timedelta_filter(value):
 # ---------------------------
 with app.app_context():
     db.create_all()
-    admin = User.query.filter_by(username='admin').first()
-    if not admin:
+    if not User.query.filter_by(username='admin').first():
         admin_user = User(
             username='admin',
             password=generate_password_hash('admin123', method="pbkdf2:sha256"),
-            role='admin'
+            role='admin',
+            otp_secret=pyotp.random_base32(),
+            otp_verified=False
         )
         db.session.add(admin_user)
         db.session.commit()
-        print("✅ Admin user created in database")
+        print(f"✅ Admin user created in database. OTP secret: {admin_user.otp_secret}")
 
 # ---------------------------
 # App Entry Point
