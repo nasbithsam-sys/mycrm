@@ -281,10 +281,6 @@ def leads():
         sub_location = request.form.get("sub_location", "")
         added_by = request.form["added_by"].strip()
 
-        if Lead.query.filter_by(customer_number=customer_number).first():
-            flash("⚠️ Lead with this customer number already exists.", "warning")
-            return redirect(url_for("leads"))
-
         new_lead = Lead(
             department=department,
             status="New Lead",
