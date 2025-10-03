@@ -13,32 +13,36 @@
       <div class="btn-list">
         <!-- Export Button -->
         <form action="{{ url_for('export_closed_leads') }}" method="GET" style="display:inline;">
-          <button type="submit" class="btn btn-outline-success">
-            Export Report
-          </button>
+          <button type="submit" class="btn btn-outline-success">Export Report</button>
         </form>
 
         <!-- Archive All Button -->
         <form action="{{ url_for('archive_all_closed') }}" method="POST" style="display:inline;">
-          <button type="submit" class="btn btn-outline-secondary">
-            Archive All
-          </button>
+          <button type="submit" class="btn btn-outline-secondary">Archive All</button>
         </form>
       </div>
     </div>
   </div>
 </div>
 
-<div class="card">
+<div class="card mt-3">
   <div class="table-responsive">
     <table class="table table-vcenter card-table">
       <thead>
         <tr>
           <th>ID</th>
-          <th>Lead Name</th>
-          <th>Status</th>
+          <th>Customer Name</th>
+          <th>Number</th>
+          <th>Department</th>
+          <th>Service</th>
+          <th>Main Area</th>
+          <th>Second Area</th>
+          <th>Sub Location</th>
+          <th>Added By</th>
           <th>Closed At</th>
           <th>Closed By</th>
+          <th>Attachment</th>
+          <th>Status</th>
           <th class="w-1">Actions</th>
         </tr>
       </thead>
@@ -46,39 +50,45 @@
         {% for lead in closed_leads %}
         <tr>
           <td>{{ lead.id }}</td>
-          <td>{{ lead.customer_name }}</td>   {# ✅ Fixed: use customer_name instead of name #}
-          <td><span class="badge bg-success">Closed</span></td>
+          <td>{{ lead.customer_name }}</td>
+          <td>{{ lead.customer_number }}</td>
+          <td>{{ lead.department }}</td>
+          <td>{{ lead.context_service }}</td>
+          <td>{{ lead.main_area }}</td>
+          <td>{{ lead.second_main_area or '' }}</td>
+          <td>{{ lead.sub_location or '' }}</td>
+          <td>{{ lead.added_by }}</td>
           <td>{{ lead.closed_at.strftime('%Y-%m-%d %H:%M') if lead.closed_at else '' }}</td>
-          <td>{{ lead.closed_by_user.username if lead.closed_by_user else "Unknown" }}</td> {# ✅ Safe fallback #}
+          <td>{{ lead.closed_by_user.username if lead.closed_by_user else '' }}</td>
+          <td>
+            {% if lead.attachment_filename %}
+              <a href="{{ url_for('uploaded_file', filename=lead.attachment_filename) }}" target="_blank">View</a>
+            {% else %}
+              -
+            {% endif %}
+          </td>
+          <td><span class="badge bg-success">Closed</span></td>
           <td>
             <div class="dropdown">
-              <button class="btn dropdown-toggle align-text-top" data-bs-toggle="dropdown">
-                Actions
-              </button>
+              <button class="btn dropdown-toggle align-text-top" data-bs-toggle="dropdown">Actions</button>
               <div class="dropdown-menu dropdown-menu-end">
-
                 <!-- Reopen Lead -->
                 <form action="{{ url_for('reopen_lead', lead_id=lead.id) }}" method="POST">
-                  <button type="submit" class="dropdown-item">
-                    Reopen
-                  </button>
+                  <button type="submit" class="dropdown-item">Reopen</button>
                 </form>
 
                 <!-- Delete Permanently -->
                 <form action="{{ url_for('delete_lead_permanent', lead_id=lead.id) }}" method="POST"
                       onsubmit="return confirm('Are you sure you want to permanently delete this lead?');">
-                  <button type="submit" class="dropdown-item text-danger">
-                    Delete Permanently
-                  </button>
+                  <button type="submit" class="dropdown-item text-danger">Delete Permanently</button>
                 </form>
-
               </div>
             </div>
           </td>
         </tr>
         {% else %}
         <tr>
-          <td colspan="6" class="text-center text-muted">No closed leads available.</td>
+          <td colspan="14" class="text-center text-muted">No closed leads available.</td>
         </tr>
         {% endfor %}
       </tbody>
@@ -86,53 +96,4 @@
   </div>
 </div>
 
-<!-- Insights Section -->
-<div class="row mt-4">
-  <div class="col-md-6">
-    <div class="card">
-      <div class="card-header"><h3 class="card-title">Top Performers</h3></div>
-      <div class="card-body">
-        <canvas id="topPerformersChart"></canvas>
-      </div>
-    </div>
-  </div>
-  <div class="col-md-6">
-    <div class="card">
-      <div class="card-header"><h3 class="card-title">Closure Trends</h3></div>
-      <div class="card-body">
-        <canvas id="closureTrendsChart"></canvas>
-      </div>
-    </div>
-  </div>
-</div>
-
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script>
-  var ctx1 = document.getElementById('topPerformersChart').getContext('2d');
-  new Chart(ctx1, {
-    type: 'bar',
-    data: {
-      labels: {{ top_labels|tojson }},
-      datasets: [{
-        label: 'Closed Leads',
-        data: {{ top_data|tojson }},
-        backgroundColor: 'rgba(54, 162, 235, 0.7)'
-      }]
-    }
-  });
-
-  var ctx2 = document.getElementById('closureTrendsChart').getContext('2d');
-  new Chart(ctx2, {
-    type: 'line',
-    data: {
-      labels: {{ trend_labels|tojson }},
-      datasets: [{
-        label: 'Closed Leads Over Time',
-        data: {{ trend_data|tojson }},
-        borderColor: 'rgba(75, 192, 192, 1)',
-        fill: false
-      }]
-    }
-  });
-</script>
 {% endblock %}
