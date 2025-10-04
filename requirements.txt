@@ -9,3 +9,6 @@ pyotp
 python-dotenv
 cloudinary
 requests
+pandas
+openpyxl
+reportlab
