@@ -587,7 +587,7 @@ def export_closed_leads():
     data = [
         {
             "ID": lead.id,
-            "Name": lead.name,
+            "Name": lead.customer_name,
             "Department": lead.department,
             "Status": lead.status,
             "Sub-Status": lead.sub_status,
@@ -769,39 +769,94 @@ def uploaded_file(filename):
 # ---------------------------
 # Export Routes
 # ---------------------------
-@app.route("/export_leads")
+@app.route("/export_closed_leads")
 @login_required
-@admin_required
-def export_leads():
-    leads = Lead.query.all()
+def export_closed_leads():
+    file_type = request.args.get("type", "csv")
+    start_date = request.args.get("start_date")
+    end_date = request.args.get("end_date")
 
-    def generate():
-        data = [['ID', 'Customer Name', 'Customer Number', 'Department',
-                 'Status', 'Sub Status', 'Main Area', 'Second Area', 'Sub Location',
-                 'Context Service', 'Added By', 'Created Date']]
-        for lead in leads:
-            data.append([
-                lead.id,
-                lead.customer_name,
-                lead.customer_number,
-                lead.department,
-                lead.status,
-                lead.sub_status or '',
-                lead.main_area,
-                lead.second_main_area or '',
-                lead.sub_location or '',
-                lead.context_service,
-                lead.added_by,
-                lead.created_at.strftime('%Y-%m-%d %H:%M')
-            ])
+    query = Lead.query.filter_by(status="Done")
+
+    if start_date and end_date:
+        start = datetime.strptime(start_date, "%Y-%m-%d")
+        end = datetime.strptime(end_date, "%Y-%m-%d")
+        query = query.filter(Lead.closed_at.between(start, end))
+
+    leads = query.all()
+
+    # 🧩 Convert data for export
+    data = [
+        {
+            "ID": lead.id,
+            "Customer Name": lead.customer_name,
+            "Customer Number": lead.customer_number,
+            "Department": lead.department,
+            "Status": lead.status,
+            "Sub-Status": lead.sub_status or "",
+            "Closed By": lead.closed_by_user.username if lead.closed_by_user else "Unknown",
+            "Closed At": lead.closed_at.strftime("%Y-%m-%d %H:%M") if lead.closed_at else "",
+        }
+        for lead in leads
+    ]
+
+    # 🛑 Handle empty data
+    if not data:
+        flash("⚠️ No closed leads found for the selected range.", "warning")
+        return redirect(url_for("closed_leads"))
+
+    # ---------------- CSV Export ----------------
+    if file_type == "csv":
         output = io.StringIO()
-        writer = csv.writer(output)
+        writer = csv.DictWriter(output, fieldnames=data[0].keys())
+        writer.writeheader()
         writer.writerows(data)
-        return output.getvalue()
+        output.seek(0)
+        return send_file(
+            io.BytesIO(output.getvalue().encode()),
+            mimetype="text/csv",
+            as_attachment=True,
+            download_name="closed_leads.csv"
+        )
 
-    response = Response(generate(), mimetype='text/csv')
-    response.headers.set("Content-Disposition", "attachment", filename=f"leads_export_{datetime.now().strftime('%Y%m%d')}.csv")
-    return response
+    # ---------------- Excel Export ----------------
+    elif file_type == "xlsx":
+        df = pd.DataFrame(data)
+        output = io.BytesIO()
+        df.to_excel(output, index=False)
+        output.seek(0)
+        return send_file(
+            output,
+            mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            as_attachment=True,
+            download_name="closed_leads.xlsx"
+        )
+
+    # ---------------- PDF Export ----------------
+    elif file_type == "pdf":
+        output = io.BytesIO()
+        p = canvas.Canvas(output)
+        y = 800
+        for row in data:
+            line = f"{row['ID']} - {row['Customer Name']} - {row['Department']} - {row['Status']} - {row['Closed At']}"
+            p.drawString(50, y, line)
+            y -= 20
+            if y < 50:
+                p.showPage()
+                y = 800
+        p.save()
+        output.seek(0)
+        return send_file(
+            output,
+            mimetype="application/pdf",
+            as_attachment=True,
+            download_name="closed_leads.pdf"
+        )
+
+    # ---------------- Invalid Type ----------------
+    else:
+        flash("⚠️ Invalid file format selected.", "danger")
+        return redirect(url_for("closed_leads"))
 
 # ---------------------------
 # Archive / Delete / Reopen
