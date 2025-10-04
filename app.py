@@ -14,6 +14,8 @@ from flask import (
     send_from_directory, Response, make_response, session
 )
 from flask_sqlalchemy import SQLAlchemy
+from dotenv import load_dotenv
+load_dotenv()  # ✅ This loads .env file automatically
 from flask_login import (
     LoginManager,
     UserMixin,
@@ -33,25 +35,52 @@ from sqlalchemy.orm import joinedload
 # ---------------------------
 app = Flask(__name__)
 import secrets
-app.config["SECRET_KEY"] = secrets.token_hex(16)
-app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "dev-secret-key-change-in-production")
+
+# ✅ Secure secret key
+app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", secrets.token_hex(16))
 app.config["SESSION_PERMANENT"] = False
 app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(minutes=30)  # auto logout after 30 mins
 
-# Use PostgreSQL in production, SQLite locally
-if os.environ.get("DATABASE_URL"):
-    app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL").replace("postgres://", "postgresql://")
-else:
-    app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///crm.db"
+# ---------------------------
+# Database Config
+# ---------------------------
+db_url = os.environ.get("DATABASE_URL", "sqlite:///crm.db").replace("postgres://", "postgresql://")
 
+# ✅ Add SSL mode if using Postgres (for Render/Supabase)
+if "sslmode" not in db_url and db_url.startswith("postgresql"):
+    db_url += "?sslmode=require"
+
+app.config["SQLALCHEMY_DATABASE_URI"] = db_url
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
-# File upload configuration
+# ---------------------------
+# File Upload Config
+# ---------------------------
 app.config['UPLOAD_FOLDER'] = 'uploads'
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB
 app.config['ALLOWED_EXTENSIONS'] = {'png', 'jpg', 'jpeg', 'gif', 'pdf', 'doc', 'docx'}
 
-db = SQLAlchemy(app)
+# ---------------------------
+# SQLAlchemy Engine (Render-safe)
+# ---------------------------
+from sqlalchemy import create_engine
+from sqlalchemy.orm import scoped_session, sessionmaker
+
+# ✅ Connection-stable engine (avoids Render idle disconnects)
+engine = create_engine(
+    app.config["SQLALCHEMY_DATABASE_URI"],
+    pool_pre_ping=True,
+    pool_size=5,
+    max_overflow=2
+)
+
+db = SQLAlchemy()
+db.session = scoped_session(sessionmaker(bind=engine))
+db.init_app(app)
+
+# ---------------------------
+# Login Manager
+# ---------------------------
 login_manager = LoginManager(app)
 login_manager.login_view = "login"
 login_manager.login_message = "Please log in to access this page."
