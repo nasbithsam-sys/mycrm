@@ -1,5 +1,4 @@
 {% extends "base.html" %}
-
 {% block title %}Closed Leads - AccBoost CRM{% endblock %}
 
 {% block content %}
@@ -12,41 +11,61 @@
 
     <div class="col-auto ms-auto d-print-none">
       <div class="btn-list">
-
-        <!-- 📅 Date Range Filter -->
+        <!-- Date Range Filter -->
         <form action="{{ url_for('closed_leads') }}" method="GET" class="d-flex align-items-center gap-2">
-          <input type="date" name="start_date" value="{{ start_date or '' }}" class="form-control" required>
-          <input type="date" name="end_date" value="{{ end_date or '' }}" class="form-control" required>
-          <button type="submit" class="btn btn-primary">Filter</button>
-          <a href="{{ url_for('closed_leads') }}" class="btn btn-secondary">Reset</a>
-        </form>
+          <div>
+            <label class="form-label mb-0 small text-muted">From Date</label>
+            <input type="date" name="start_date" value="{{ start_date or '' }}" class="form-control form-control-sm">
+          </div>
+          <div>
+            <label class="form-label mb-0 small text-muted">To Date (Today)</label>
+            <input type="date" name="end_date" value="{{ end_date or now.strftime('%Y-%m-%d') }}" class="form-control form-control-sm">
+          </div>
 
+          <button type="submit" class="btn btn-primary btn-sm">Filter</button>
+          <a href="{{ url_for('closed_leads') }}" class="btn btn-secondary btn-sm">Reset</a>
+
+          <!-- Export Dropdown -->
+          <div class="dropdown">
+            <button class="btn btn-success btn-sm dropdown-toggle" data-bs-toggle="dropdown" type="button">
+              Export Report
+            </button>
+            <div class="dropdown-menu dropdown-menu-end">
+              <a class="dropdown-item" href="{{ url_for('export_closed_leads', type='csv', start_date=start_date, end_date=end_date) }}">
+                <i class="ti ti-file-text me-2"></i> Export as CSV
+              </a>
+              <a class="dropdown-item" href="{{ url_for('export_closed_leads', type='xlsx', start_date=start_date, end_date=end_date) }}">
+                <i class="ti ti-file-spreadsheet me-2"></i> Export as Excel
+              </a>
+              <a class="dropdown-item" href="{{ url_for('export_closed_leads', type='pdf', start_date=start_date, end_date=end_date) }}">
+                <i class="ti ti-file-description me-2"></i> Export as PDF
+              </a>
+            </div>
+          </div>
+
+          <!-- Archive All -->
+          <form action="{{ url_for('archive_all_closed') }}" method="POST" class="m-0">
+            <button type="submit" class="btn btn-outline-secondary btn-sm">Archive All</button>
+          </form>
+        </form>
       </div>
     </div>
   </div>
 </div>
 
-<!-- 🔽 Export Buttons Row -->
-<div class="d-flex justify-content-end mt-3">
-  <div class="btn-group">
-    <a href="{{ url_for('export_closed_leads', type='csv', start_date=start_date, end_date=end_date) }}"
-       class="btn btn-outline-success">Export CSV</a>
-    <a href="{{ url_for('export_closed_leads', type='xlsx', start_date=start_date, end_date=end_date) }}"
-       class="btn btn-outline-primary">Export Excel</a>
-    <a href="{{ url_for('export_closed_leads', type='pdf', start_date=start_date, end_date=end_date) }}"
-       class="btn btn-outline-danger">Export PDF</a>
+<!-- Leads Table -->
+<div class="card mt-3">
+  <div class="card-body border-bottom py-2">
+    <h3 class="card-title mb-0">
+      <span class="text-muted">Total Leads:</span> <strong>{{ total_leads }}</strong>
+      {% if start_date and end_date %}
+      <span class="ms-3 text-muted small">(Filtered between {{ start_date }} → {{ end_date }})</span>
+      {% endif %}
+    </h3>
   </div>
 
-  <!-- 🗄️ Archive All Button -->
-  <form action="{{ url_for('archive_all_closed') }}" method="POST" class="ms-2">
-    <button type="submit" class="btn btn-outline-secondary">Archive All</button>
-  </form>
-</div>
-
-<!-- 📋 Closed Leads Table -->
-<div class="card mt-3">
   <div class="table-responsive">
-    <table class="table table-vcenter card-table">
+    <table class="table table-vcenter card-table table-striped">
       <thead>
         <tr>
           <th>ID</th>
@@ -62,7 +81,7 @@
           <th>Closed By</th>
           <th>Attachment</th>
           <th>Status</th>
-          <th class="w-1">Actions</th>
+          <th>Actions</th>
         </tr>
       </thead>
       <tbody>
@@ -89,7 +108,9 @@
           <td><span class="badge bg-success">Closed</span></td>
           <td>
             <div class="dropdown">
-              <button class="btn dropdown-toggle align-text-top" data-bs-toggle="dropdown">Actions</button>
+              <button class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown">
+                Actions
+              </button>
               <div class="dropdown-menu dropdown-menu-end">
                 <form action="{{ url_for('reopen_lead', lead_id=lead.id) }}" method="POST">
                   <button type="submit" class="dropdown-item">Reopen</button>
@@ -104,12 +125,11 @@
         </tr>
         {% else %}
         <tr>
-          <td colspan="14" class="text-center text-muted">No closed leads available.</td>
+          <td colspan="14" class="text-center text-muted py-4">No closed leads available.</td>
         </tr>
         {% endfor %}
       </tbody>
     </table>
   </div>
 </div>
-
 {% endblock %}

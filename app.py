@@ -538,7 +538,6 @@ from reportlab.pdfgen import canvas
 @app.route("/closed_leads")
 @login_required
 def closed_leads():
-    # Get optional date filters
     start_date = request.args.get("start_date")
     end_date = request.args.get("end_date")
 
@@ -552,28 +551,19 @@ def closed_leads():
     closed = query.all()
     total_leads = len(closed)
 
-    user_counts = Counter(lead.closed_by_user.username if lead.closed_by_user else "Unknown" for lead in closed)
-    top_labels = list(user_counts.keys())
-    top_data = list(user_counts.values())
-
-    date_counts = Counter(lead.closed_at.date() for lead in closed if lead.closed_at)
-    trend_labels = sorted([d.strftime("%Y-%m-%d") for d in date_counts.keys()])
-    trend_data = [date_counts[datetime.strptime(d, "%Y-%m-%d").date()] for d in trend_labels]
+    # Auto-fill "today" if end_date missing
+    if not end_date:
+        end_date = datetime.now().strftime("%Y-%m-%d")
 
     return render_template(
         "closed_leads.html",
         closed_leads=closed,
         total_leads=total_leads,
         now=datetime.now(),
-        departments=DEPARTMENTS,
-        top_labels=top_labels,
-        top_data=top_data,
-        trend_labels=trend_labels,
-        trend_data=trend_data,
         start_date=start_date,
-        end_date=end_date
+        end_date=end_date,
+        departments=DEPARTMENTS
     )
-
 
 # -------------------------------
 # EXPORT ROUTE
