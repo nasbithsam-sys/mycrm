@@ -545,7 +545,6 @@ def closed_leads():
     query = Lead.query.options(joinedload(Lead.closed_by_user)).filter_by(status="Done")
 
     if start_date and end_date:
-        from datetime import datetime
         start = datetime.strptime(start_date, "%Y-%m-%d")
         end = datetime.strptime(end_date, "%Y-%m-%d")
         query = query.filter(Lead.closed_at.between(start, end))
@@ -589,7 +588,6 @@ def export_closed_leads():
     query = Lead.query.filter_by(status="Done")
 
     if start_date and end_date:
-        from datetime import datetime
         start = datetime.strptime(start_date, "%Y-%m-%d")
         end = datetime.strptime(end_date, "%Y-%m-%d")
         query = query.filter(Lead.closed_at.between(start, end))
