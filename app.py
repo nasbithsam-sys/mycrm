@@ -16,6 +16,15 @@ from flask import (
 from flask_sqlalchemy import SQLAlchemy
 from dotenv import load_dotenv
 load_dotenv()  # ✅ This loads .env file automatically
+import cloudinary
+import cloudinary.uploader
+
+cloudinary.config(
+    cloud_name=os.getenv("CLOUDINARY_CLOUD_NAME", "dgj1mf0ca"),
+    api_key=os.getenv("CLOUDINARY_API_KEY", "688872972948856"),
+    api_secret=os.getenv("CLOUDINARY_API_SECRET", "HQF4ljVl-zF4etc9Og0WZiYE1Tw")
+)
+
 from flask_login import (
     LoginManager,
     UserMixin,
@@ -310,7 +319,7 @@ def leads():
         sub_location = request.form.get("sub_location", "")
         added_by = request.form["added_by"].strip()
 
-        # Create new lead object
+        # ✅ Create new lead object
         new_lead = Lead(
             department=department,
             status="New Lead",
@@ -324,55 +333,43 @@ def leads():
             added_by=added_by
         )
 
-        # ---------------------------
-        # File Upload Handling
-        # ---------------------------
-        uploaded_file = request.files.get('attachment')  # safe access
+        # ✅ Handle file upload (to Cloudinary)
+        uploaded_file = request.files.get('attachment')
+        if uploaded_file and uploaded_file.filename.strip() != '':
+            if allowed_file(uploaded_file.filename):
+                try:
+                    upload_result = cloudinary.uploader.upload(
+                        uploaded_file,
+                        folder="leads",        # folder in Cloudinary
+                        resource_type="auto"   # handles images, pdfs, docs, etc.
+                    )
+                    # Save secure Cloudinary URL in database
+                    new_lead.attachment_filename = upload_result["secure_url"]
+                    flash("✅ File uploaded to Cloudinary successfully!", "success")
 
-        if uploaded_file and uploaded_file.filename:
-            filename = uploaded_file.filename.strip()
-
-            if filename != '' and allowed_file(filename):
-                # Make sure upload folder exists
-                os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
-
-                # Generate unique name
-                original = secure_filename(filename)
-                unique_prefix = uuid.uuid4().hex
-                new_filename = f"{datetime.now().strftime('%Y%m%d_%H%M%S')}_{unique_prefix}_{original}"
-                file_path = os.path.join(app.config['UPLOAD_FOLDER'], new_filename)
-
-                # Save file
-                uploaded_file.save(file_path)
-
-                # Save filename to DB
-                new_lead.attachment_filename = new_filename
-                flash("✅ File uploaded successfully!", "success")
+                except Exception as e:
+                    flash(f"❌ Cloud upload failed: {str(e)}", "danger")
             else:
-                flash("⚠️ Invalid or empty file name.", "warning")
+                flash("⚠️ Invalid file type.", "warning")
         else:
             flash("ℹ️ No attachment uploaded.", "info")
 
-        # ---------------------------
-        # Add new lead to DB
-        # ---------------------------
+        # ✅ Commit lead to database
         db.session.add(new_lead)
         db.session.commit()
         flash("✅ Lead added successfully!", "success")
-        return redirect(url_for("leads"))  # ✅ <-- now inside the function
+        return redirect(url_for("leads"))
 
-    # ---------------------------
-    # If GET request → show leads
-    # ---------------------------
+    # ✅ Show all leads depending on user role
     initial_statuses = ["New Lead", "Issue in Lead", "Updated"]
     if current_user.role == "admin":
         leads_list = Lead.query.filter(Lead.status.in_(initial_statuses)).all()
     else:
-        leads_list = Lead.query.filter_by(user_id=current_user.id).filter(Lead.status.in_(initial_statuses)).all()
+        leads_list = Lead.query.filter_by(user_id=current_user.id).filter(
+            Lead.status.in_(initial_statuses)
+        ).all()
 
     return render_template("leads.html", leads=leads_list, departments=DEPARTMENTS)
-
-
 
 # ---------------------------
 # Leads (Admin View & Edit)
