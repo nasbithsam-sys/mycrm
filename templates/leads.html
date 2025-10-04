@@ -7,109 +7,106 @@
     <div class="row align-items-center">
         <div class="col">
             <h1 class="page-title">My Leads</h1>
-            <div class="text-muted mt-1">
-                Manage and update your leads.
-            </div>
+            <div class="text-muted mt-1">Manage your current leads and update if required.</div>
         </div>
         <div class="col-auto">
-            <a href="{{ url_for('add_lead') }}" class="btn btn-primary">
-                + Add New Lead
-            </a>
+            <a href="{{ url_for('add_lead') }}" class="btn btn-primary">+ Add New Lead</a>
         </div>
     </div>
 </div>
 
-<div class="row mt-4">
-    <div class="col-12">
-        {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                {% for category, message in messages %}
-                    <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
-                        {{ message }}
-                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                    </div>
-                {% endfor %}
-            {% endif %}
-        {% endwith %}
-
-        <div class="card">
-            <div class="card-header">
-                <h3 class="card-title">Your Leads</h3>
+{% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+        {% for category, message in messages %}
+            <div class="alert alert-{{ category }} alert-dismissible fade show mt-3" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
             </div>
-            <div class="card-body table-responsive">
-                <table class="table table-bordered align-middle text-center">
-                    <thead class="table-light">
-                        <tr>
-                            <th>ID</th>
-                            <th>Customer Name</th>
-                            <th>Number</th>
-                            <th>Department</th>
-                            <th>Status</th>
-                            <th>Attachment</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for lead in leads %}
-                        <tr>
-                            <td>{{ lead.id }}</td>
-                            <td>{{ lead.customer_name }}</td>
-                            <td>{{ lead.customer_number }}</td>
-                            <td>{{ lead.department }}</td>
-                            <td>
-                                <span class="badge 
-                                    {% if lead.status == 'New Lead' %}bg-primary
-                                    {% elif lead.status == 'Issue in Lead' %}bg-danger
-                                    {% elif lead.status == 'Updated' %}bg-success
-                                    {% else %}bg-secondary{% endif %}">
-                                    {{ lead.status }}
-                                </span>
-                            </td>
+        {% endfor %}
+    {% endif %}
+{% endwith %}
 
-                            <!-- Attachment Preview -->
-                            <td>
-                                {% if lead.attachment_filename %}
-                                    {% if lead.attachment_filename.endswith('.jpg') or 
-                                          lead.attachment_filename.endswith('.jpeg') or 
-                                          lead.attachment_filename.endswith('.png') or 
-                                          lead.attachment_filename.endswith('.gif') %}
-                                        <a href="{{ lead.attachment_filename }}" target="_blank">
-                                            <img src="{{ lead.attachment_filename }}" alt="Attachment" 
-                                                 class="img-thumbnail" style="height: 50px; width: 50px;">
-                                        </a>
-                                    {% else %}
-                                        <a href="{{ lead.attachment_filename }}" target="_blank" 
-                                           class="btn btn-sm btn-outline-info">
-                                            View File
-                                        </a>
-                                    {% endif %}
+<div class="card mt-4">
+    <div class="card-header bg-light">
+        <h3 class="card-title">My Leads List</h3>
+    </div>
+
+    <div class="card-body table-responsive">
+        <table class="table table-bordered align-middle text-center">
+            <thead class="table-light">
+                <tr>
+                    <th>ID</th>
+                    <th>Customer Name</th>
+                    <th>Contact Number</th>
+                    <th>Department</th>
+                    <th>Main Area</th>
+                    <th>Status</th>
+                    <th>Attachment</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if leads %}
+                    {% for lead in leads %}
+                    <tr>
+                        <td>{{ lead.id }}</td>
+                        <td>{{ lead.customer_name }}</td>
+                        <td>{{ lead.customer_number }}</td>
+                        <td>{{ lead.department }}</td>
+                        <td>{{ lead.main_area }}</td>
+                        <td>
+                            {% if lead.status == "New Lead" %}
+                                <span class="badge bg-primary">{{ lead.status }}</span>
+                            {% elif lead.status == "Issue in Lead" %}
+                                <span class="badge bg-danger">{{ lead.status }}</span>
+                            {% elif lead.status == "Updated" %}
+                                <span class="badge bg-success">{{ lead.status }}</span>
+                            {% else %}
+                                <span class="badge bg-secondary">{{ lead.status }}</span>
+                            {% endif %}
+                        </td>
+
+                        <!-- Attachment Column -->
+                        <td>
+                            {% if lead.attachment_filename %}
+                                {% if lead.attachment_filename.endswith('.jpg') or
+                                      lead.attachment_filename.endswith('.jpeg') or
+                                      lead.attachment_filename.endswith('.png') or
+                                      lead.attachment_filename.endswith('.gif') %}
+                                    <a href="{{ lead.attachment_filename }}" target="_blank">
+                                        <img src="{{ lead.attachment_filename }}" alt="Attachment"
+                                             class="img-thumbnail" style="height: 50px; width: 50px;">
+                                    </a>
                                 {% else %}
-                                    <span class="text-muted">No File</span>
+                                    <a href="{{ lead.attachment_filename }}" target="_blank"
+                                       class="btn btn-sm btn-outline-info">View File</a>
                                 {% endif %}
-                            </td>
+                            {% else %}
+                                <span class="text-muted">No File</span>
+                            {% endif %}
+                        </td>
 
-                            <!-- Action Buttons -->
-                            <td>
-                                {% if current_user.role == 'admin' or (lead.status == 'Issue in Lead' and lead.user_id == current_user.id) %}
-                                    <a href="{{ url_for('edit_lead', lead_id=lead.id) }}" 
-                                       class="btn btn-sm btn-outline-primary me-1">Edit</a>
-                                {% endif %}
-                                <form method="POST" action="{{ url_for('resolve_lead', lead_id=lead.id) }}" style="display:inline;">
-                                    {% if lead.status == 'Issue in Lead' %}
-                                        <button type="submit" class="btn btn-sm btn-success">Mark Resolved</button>
-                                    {% endif %}
-                                </form>
-                            </td>
-                        </tr>
-                        {% else %}
-                        <tr>
-                            <td colspan="7" class="text-center text-muted">No leads found.</td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        </div>
+                        <!-- Actions -->
+                        <td>
+                            <a href="{{ url_for('view_leads') }}" 
+                               class="btn btn-sm btn-outline-secondary">View</a>
+
+                            {% if lead.status == 'Issue in Lead' %}
+                                <a href="{{ url_for('edit_lead', lead_id=lead.id) }}" 
+                                   class="btn btn-sm btn-outline-primary">Edit</a>
+                            {% else %}
+                                <button class="btn btn-sm btn-outline-primary" disabled title="Edit disabled for this status">
+                                    Edit
+                                </button>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr><td colspan="8" class="text-muted text-center">No leads available.</td></tr>
+                {% endif %}
+            </tbody>
+        </table>
     </div>
 </div>
 {% endblock %}
