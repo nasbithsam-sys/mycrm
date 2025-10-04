@@ -1,112 +1,186 @@
 {% extends "base.html" %}
 
-{% block title %}My Leads - AccBoost CRM{% endblock %}
+{% block title %}My Leads - CRM{% endblock %}
 
 {% block content %}
 <div class="page-header">
-    <div class="row align-items-center">
-        <div class="col">
-            <h1 class="page-title">My Leads</h1>
-            <div class="text-muted mt-1">Manage your current leads and update if required.</div>
-        </div>
-        <div class="col-auto">
-            <a href="{{ url_for('add_lead') }}" class="btn btn-primary">+ Add New Lead</a>
-        </div>
+  <div class="row align-items-center">
+    <div class="col">
+      <h1 class="page-title">My Leads</h1>
+      <div class="text-muted mt-1">Manage your active leads (New or Issues)</div>
     </div>
+    <div class="col-auto">
+      <span class="badge bg-primary">Total: {{ leads|length }} active leads</span>
+      <a href="{{ url_for('add_lead') }}" class="btn btn-primary ms-2">
+        <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="16" height="16" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+          <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+          <path d="M12 5v14M5 12h14" />
+        </svg>
+        Add New Lead
+      </a>
+    </div>
+  </div>
 </div>
 
-{% with messages = get_flashed_messages(with_categories=true) %}
-    {% if messages %}
-        {% for category, message in messages %}
-            <div class="alert alert-{{ category }} alert-dismissible fade show mt-3" role="alert">
-                {{ message }}
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-            </div>
-        {% endfor %}
-    {% endif %}
-{% endwith %}
+<!-- Leads Table -->
+<div class="card mt-3">
+  <div class="card-header">
+    <h3 class="card-title">My Active Leads</h3>
+  </div>
+  <div class="card-body">
+    <div class="table-responsive">
+      <table class="table table-vcenter table-hover table-striped">
+        <thead>
+          <tr>
+            <th>Customer</th>
+            <th>Department</th>
+            <th>Service Context</th>
+            <th>Area</th>
+            <th>Attachment</th>
+            <th>Added By</th>
+            <th>Status</th>
+            <th>Date</th>
+            <th class="w-1">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for lead in leads %}
+          <tr>
+            <!-- Customer Info -->
+            <td>
+              <div class="d-flex align-items-center">
+                <span class="avatar avatar-sm bg-primary-lt me-3">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="20" height="20" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                    <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                    <path d="M12 7a4 4 0 1 0 0-8 4 4 0 1 0 0 8zm0 2a9 9 0 1 0 0 18 9 9 0 1 0 0-18z"/>
+                  </svg>
+                </span>
+                <div>
+                  <div class="fw-bold">{{ lead.customer_name }}</div>
+                  <div class="text-muted small">{{ lead.customer_number }}</div>
+                </div>
+              </div>
+            </td>
 
-<div class="card mt-4">
-    <div class="card-header bg-light">
-        <h3 class="card-title">My Leads List</h3>
-    </div>
+            <td><span class="badge bg-primary-lt">{{ lead.department }}</span></td>
 
-    <div class="card-body table-responsive">
-        <table class="table table-bordered align-middle text-center">
-            <thead class="table-light">
-                <tr>
-                    <th>ID</th>
-                    <th>Customer Name</th>
-                    <th>Contact Number</th>
-                    <th>Department</th>
-                    <th>Main Area</th>
-                    <th>Status</th>
-                    <th>Attachment</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% if leads %}
-                    {% for lead in leads %}
-                    <tr>
-                        <td>{{ lead.id }}</td>
-                        <td>{{ lead.customer_name }}</td>
-                        <td>{{ lead.customer_number }}</td>
-                        <td>{{ lead.department }}</td>
-                        <td>{{ lead.main_area }}</td>
-                        <td>
-                            {% if lead.status == "New Lead" %}
-                                <span class="badge bg-primary">{{ lead.status }}</span>
-                            {% elif lead.status == "Issue in Lead" %}
-                                <span class="badge bg-danger">{{ lead.status }}</span>
-                            {% elif lead.status == "Updated" %}
-                                <span class="badge bg-success">{{ lead.status }}</span>
-                            {% else %}
-                                <span class="badge bg-secondary">{{ lead.status }}</span>
-                            {% endif %}
-                        </td>
+            <td>
+              <div class="text-muted small" style="max-width: 200px;">
+                {{ lead.context_service[:50] }}{% if lead.context_service|length > 50 %}...{% endif %}
+              </div>
+            </td>
 
-                        <!-- Attachment Column -->
-                        <td>
-                            {% if lead.attachment_filename %}
-                                {% if lead.attachment_filename.endswith('.jpg') or
-                                      lead.attachment_filename.endswith('.jpeg') or
-                                      lead.attachment_filename.endswith('.png') or
-                                      lead.attachment_filename.endswith('.gif') %}
-                                    <a href="{{ lead.attachment_filename }}" target="_blank">
-                                        <img src="{{ lead.attachment_filename }}" alt="Attachment"
-                                             class="img-thumbnail" style="height: 50px; width: 50px;">
-                                    </a>
-                                {% else %}
-                                    <a href="{{ lead.attachment_filename }}" target="_blank"
-                                       class="btn btn-sm btn-outline-info">View File</a>
-                                {% endif %}
-                            {% else %}
-                                <span class="text-muted">No File</span>
-                            {% endif %}
-                        </td>
+            <td>
+              <div class="text-muted small">
+                <div>Main: {{ lead.main_area or 'N/A' }}</div>
+                {% if lead.second_main_area %}<div>2nd: {{ lead.second_main_area }}</div>{% endif %}
+                <div>Sub: {{ lead.sub_location or 'N/A' }}</div>
+              </div>
+            </td>
 
-                        <!-- Actions -->
-                        <td>
-                            <a href="{{ url_for('view_leads') }}" 
-                               class="btn btn-sm btn-outline-secondary">View</a>
-
-                            {% if lead.status == 'Issue in Lead' %}
-                                <a href="{{ url_for('edit_lead', lead_id=lead.id) }}" 
-                                   class="btn btn-sm btn-outline-primary">Edit</a>
-                            {% else %}
-                                <button class="btn btn-sm btn-outline-primary" disabled title="Edit disabled for this status">
-                                    Edit
-                                </button>
-                            {% endif %}
-                        </td>
-                    </tr>
-                    {% endfor %}
+            <!-- Attachment -->
+            <td>
+              {% if lead.attachment_filename %}
+                {% if lead.attachment_filename.endswith('.jpg') or
+                      lead.attachment_filename.endswith('.jpeg') or
+                      lead.attachment_filename.endswith('.png') or
+                      lead.attachment_filename.endswith('.gif') %}
+                  <a href="{{ lead.attachment_filename }}" target="_blank">
+                    <img src="{{ lead.attachment_filename }}" alt="Attachment" class="rounded" style="width:60px;height:60px;object-fit:cover;">
+                  </a>
                 {% else %}
-                    <tr><td colspan="8" class="text-muted text-center">No leads available.</td></tr>
+                  <a href="{{ lead.attachment_filename }}" target="_blank" class="btn btn-sm btn-outline-info">
+                    View File
+                  </a>
                 {% endif %}
-            </tbody>
-        </table>
+              {% else %}
+                <span class="text-muted">None</span>
+              {% endif %}
+            </td>
+
+            <!-- Added By -->
+            <td>{{ lead.added_by }}</td>
+
+            <!-- Status -->
+            <td>
+              {% if lead.status == "New Lead" %}
+                <span class="badge bg-blue-lt">{{ lead.status }}</span>
+              {% elif lead.status == "Issue in Lead" %}
+                <span class="badge bg-red-lt">{{ lead.status }}</span>
+              {% elif lead.status == "Updated" %}
+                <span class="badge bg-green-lt">{{ lead.status }}</span>
+              {% else %}
+                <span class="badge bg-secondary">{{ lead.status }}</span>
+              {% endif %}
+            </td>
+
+            <!-- Date -->
+            <td class="text-muted small">{{ lead.created_at.strftime('%b %d, %Y') }}</td>
+
+            <!-- Actions -->
+            <td>
+              <div class="btn-group" role="group">
+                <!-- View Button -->
+                <a href="#" class="btn btn-sm btn-outline-info" data-bs-toggle="modal" data-bs-target="#viewLead{{ lead.id }}">
+                  View
+                </a>
+
+                <!-- Admin Dropdown -->
+                {% if current_user.role == "admin" %}
+                  <form action="{{ url_for('update_status', lead_id=lead.id) }}" method="POST" style="display:inline;">
+                    <select name="status" class="form-select form-select-sm mt-1" onchange="this.form.submit();">
+                      <option value="New Lead" {% if lead.status == "New Lead" %}selected{% endif %}>New Lead</option>
+                      <option value="Issue in Lead" {% if lead.status == "Issue in Lead" %}selected{% endif %}>Issue in Lead</option>
+                      <option value="Done" {% if lead.status == "Done" %}selected{% endif %}>Done (Move)</option>
+                    </select>
+                    <input type="hidden" name="origin" value="my_leads">
+                  </form>
+                {% elif current_user.username == lead.added_by and lead.status == "Issue in Lead" %}
+                  <!-- Edit Button (Only for user's own Issue in Lead) -->
+                  <a href="{{ url_for('edit_lead', lead_id=lead.id) }}" class="btn btn-sm btn-warning mt-1">
+                    Edit
+                  </a>
+                {% else %}
+                  <span class="text-muted small">View only</span>
+                {% endif %}
+              </div>
+            </td>
+          </tr>
+
+          <!-- View Modal -->
+          <div class="modal fade" id="viewLead{{ lead.id }}" tabindex="-1">
+            <div class="modal-dialog modal-lg">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h5 class="modal-title">Lead Details: {{ lead.customer_name }}</h5>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                  <p><strong>Customer:</strong> {{ lead.customer_name }} ({{ lead.customer_number }})</p>
+                  <p><strong>Department:</strong> {{ lead.department }}</p>
+                  <p><strong>Service:</strong> {{ lead.context_service }}</p>
+                  <p><strong>Main Area:</strong> {{ lead.main_area }}</p>
+                  <p><strong>Second Main:</strong> {{ lead.second_main_area or '—' }}</p>
+                  <p><strong>Sub Location:</strong> {{ lead.sub_location or '—' }}</p>
+                  <p><strong>Status:</strong> {{ lead.status }}</p>
+                  <p><strong>Added By:</strong> {{ lead.added_by }}</p>
+                  <p><strong>Date:</strong> {{ lead.created_at.strftime('%b %d, %Y %H:%M') }}</p>
+                  {% if lead.attachment_filename %}
+                    <p><strong>Attachment:</strong><br>
+                      <a href="{{ lead.attachment_filename }}" target="_blank">Open File</a>
+                    </p>
+                  {% endif %}
+                </div>
+                <div class="modal-footer">
+                  <button class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+              </div>
+            </div>
+          </div>
+          {% endfor %}
+        </tbody>
+      </table>
     </div>
+  </div>
 </div>
 {% endblock %}
