@@ -135,7 +135,7 @@
                     </select>
                     <input type="hidden" name="origin" value="my_leads">
                   </form>
-                {% elif current_user.username == lead.added_by and lead.status == "Issue in Lead" %}
+                {% elif current_user.username == lead.added_by %}
                   <!-- Edit Button (Only for user's own Issue in Lead) -->
                   <a href="{{ url_for('edit_lead', lead_id=lead.id) }}" class="btn btn-sm btn-warning mt-1">
                     Edit

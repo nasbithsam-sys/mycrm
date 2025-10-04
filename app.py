@@ -415,47 +415,44 @@ def view_leads():
 def edit_lead(lead_id):
     lead = Lead.query.get_or_404(lead_id)
 
-    # Non-admin users can only edit their own leads that have 'Issue in Lead'
-    if current_user.role != "admin":
-        if lead.user_id != current_user.id or lead.status != "Issue in Lead":
-            flash("⚠️ You can only edit your own leads that have 'Issue in Lead' status.", "danger")
-            return redirect(url_for("dashboard"))
+    # Restrict editing: user can edit their own leads or admin can edit all
+    if current_user.role != "admin" and lead.user_id != current_user.id:
+        flash("⚠️ You can only edit your own leads.", "danger")
+        return redirect(url_for("dashboard"))
 
     if request.method == "POST":
-        # Update text fields
-        lead.customer_name = request.form.get("customer_name", lead.customer_name)
-        lead.customer_number = request.form.get("customer_number", lead.customer_number)
-        lead.context_service = request.form.get("context_service", lead.context_service)
+        # Update editable fields
+        lead.customer_name = request.form.get("customer_name", lead.customer_name).strip()
+        lead.customer_number = request.form.get("customer_number", lead.customer_number).strip()
         lead.department = request.form.get("department", lead.department)
-        lead.main_area = request.form.get("main_area", lead.main_area)
-        lead.second_main_area = request.form.get("second_main_area", lead.second_main_area)
-        lead.sub_location = request.form.get("sub_location", lead.sub_location)
+        lead.context_service = request.form.get("context_service", lead.context_service).strip()
+        lead.main_area = request.form.get("main_area", lead.main_area).strip()
+        lead.second_main_area = request.form.get("second_main_area", lead.second_main_area).strip()
+        lead.sub_location = request.form.get("sub_location", lead.sub_location).strip()
 
-        # ---------------------------
-        # Handle attachment change (Cloudinary)
-        # ---------------------------
+        # Handle optional new attachment upload
         uploaded_file = request.files.get("attachment")
-
         if uploaded_file and uploaded_file.filename.strip() != "":
-            if allowed_file(uploaded_file.filename):
-                try:
-                    uploaded_file.seek(0)
-                    upload_result = cloudinary.uploader.upload(
-                        uploaded_file,
-                        folder="leads",
-                        resource_type="auto",
-                        unique_filename=True,
-                        overwrite=False
-                    )
-                    lead.attachment_filename = upload_result["secure_url"]
-                    flash("✅ File updated successfully!", "success")
-                except Exception as e:
-                    flash(f"❌ Upload failed: {str(e)}", "danger")
-            else:
-                flash("⚠️ Invalid file type.", "warning")
+            from cloudinary.uploader import upload
+            try:
+                uploaded_file.seek(0)
+                upload_result = upload(
+                    uploaded_file,
+                    folder="leads",
+                    resource_type="auto",
+                    unique_filename=True,
+                    overwrite=False
+                )
+                lead.attachment_filename = upload_result["secure_url"]
+                flash("✅ New attachment uploaded successfully!", "success")
+            except Exception as e:
+                flash(f"⚠️ Attachment upload failed: {str(e)}", "danger")
 
+        # Always mark status as "Updated" after edit
+        lead.status = "Updated"
         db.session.commit()
-        flash("✏️ Lead updated successfully.", "success")
+
+        flash("✅ Lead updated successfully and marked as 'Updated'.", "success")
         return redirect(url_for("dashboard"))
 
     return render_template("edit_lead.html", lead=lead, departments=DEPARTMENTS)
