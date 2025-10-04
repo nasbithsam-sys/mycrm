@@ -529,10 +529,28 @@ def update_status(lead_id):
 # ---------------------------
 # Closed Leads
 # ---------------------------
+from flask import request, send_file
+import io
+import csv
+import pandas as pd
+from reportlab.pdfgen import canvas
+
 @app.route("/closed_leads")
 @login_required
 def closed_leads():
-    closed = Lead.query.options(joinedload(Lead.closed_by_user)).filter_by(status="Done").all()
+    # Get optional date filters
+    start_date = request.args.get("start_date")
+    end_date = request.args.get("end_date")
+
+    query = Lead.query.options(joinedload(Lead.closed_by_user)).filter_by(status="Done")
+
+    if start_date and end_date:
+        from datetime import datetime
+        start = datetime.strptime(start_date, "%Y-%m-%d")
+        end = datetime.strptime(end_date, "%Y-%m-%d")
+        query = query.filter(Lead.closed_at.between(start, end))
+
+    closed = query.all()
     total_leads = len(closed)
 
     user_counts = Counter(lead.closed_by_user.username if lead.closed_by_user else "Unknown" for lead in closed)
@@ -552,8 +570,87 @@ def closed_leads():
         top_labels=top_labels,
         top_data=top_data,
         trend_labels=trend_labels,
-        trend_data=trend_data
+        trend_data=trend_data,
+        start_date=start_date,
+        end_date=end_date
     )
+
+
+# -------------------------------
+# EXPORT ROUTE
+# -------------------------------
+@app.route("/export_closed_leads")
+@login_required
+def export_closed_leads():
+    file_type = request.args.get("type", "csv")
+    start_date = request.args.get("start_date")
+    end_date = request.args.get("end_date")
+
+    query = Lead.query.filter_by(status="Done")
+
+    if start_date and end_date:
+        from datetime import datetime
+        start = datetime.strptime(start_date, "%Y-%m-%d")
+        end = datetime.strptime(end_date, "%Y-%m-%d")
+        query = query.filter(Lead.closed_at.between(start, end))
+
+    leads = query.all()
+
+    data = [
+        {
+            "ID": lead.id,
+            "Name": lead.name,
+            "Department": lead.department,
+            "Status": lead.status,
+            "Sub-Status": lead.sub_status,
+            "Closed By": lead.closed_by_user.username if lead.closed_by_user else "Unknown",
+            "Closed At": lead.closed_at.strftime("%Y-%m-%d %H:%M") if lead.closed_at else "",
+        }
+        for lead in leads
+    ]
+
+    if file_type == "csv":
+        output = io.StringIO()
+        writer = csv.DictWriter(output, fieldnames=data[0].keys())
+        writer.writeheader()
+        writer.writerows(data)
+        output.seek(0)
+        return send_file(
+            io.BytesIO(output.getvalue().encode()),
+            mimetype="text/csv",
+            as_attachment=True,
+            download_name="closed_leads.csv"
+        )
+
+    elif file_type == "xlsx":
+        df = pd.DataFrame(data)
+        output = io.BytesIO()
+        df.to_excel(output, index=False)
+        output.seek(0)
+        return send_file(
+            output,
+            mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            as_attachment=True,
+            download_name="closed_leads.xlsx"
+        )
+
+    elif file_type == "pdf":
+        output = io.BytesIO()
+        p = canvas.Canvas(output)
+        y = 800
+        for row in data:
+            line = f"{row['ID']} - {row['Name']} - {row['Department']} - {row['Status']} - {row['Closed At']}"
+            p.drawString(50, y, line)
+            y -= 20
+            if y < 50:
+                p.showPage()
+                y = 800
+        p.save()
+        output.seek(0)
+        return send_file(output, mimetype="application/pdf", as_attachment=True, download_name="closed_leads.pdf")
+
+    else:
+        return "Invalid file type", 400
 
 # ---------------------------
 # Dashboard

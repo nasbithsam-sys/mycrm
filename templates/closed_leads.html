@@ -9,22 +9,41 @@
       <h2 class="page-title">Closed Leads</h2>
       <div class="text-muted mt-1">Manage and review all closed leads</div>
     </div>
+
     <div class="col-auto ms-auto d-print-none">
       <div class="btn-list">
-        <!-- Export Button -->
-        <form action="{{ url_for('export_closed_leads') }}" method="GET" style="display:inline;">
-          <button type="submit" class="btn btn-outline-success">Export Report</button>
+
+        <!-- 📅 Date Range Filter -->
+        <form action="{{ url_for('closed_leads') }}" method="GET" class="d-flex align-items-center gap-2">
+          <input type="date" name="start_date" value="{{ start_date or '' }}" class="form-control" required>
+          <input type="date" name="end_date" value="{{ end_date or '' }}" class="form-control" required>
+          <button type="submit" class="btn btn-primary">Filter</button>
+          <a href="{{ url_for('closed_leads') }}" class="btn btn-secondary">Reset</a>
         </form>
 
-        <!-- Archive All Button -->
-        <form action="{{ url_for('archive_all_closed') }}" method="POST" style="display:inline;">
-          <button type="submit" class="btn btn-outline-secondary">Archive All</button>
-        </form>
       </div>
     </div>
   </div>
 </div>
 
+<!-- 🔽 Export Buttons Row -->
+<div class="d-flex justify-content-end mt-3">
+  <div class="btn-group">
+    <a href="{{ url_for('export_closed_leads', type='csv', start_date=start_date, end_date=end_date) }}"
+       class="btn btn-outline-success">Export CSV</a>
+    <a href="{{ url_for('export_closed_leads', type='xlsx', start_date=start_date, end_date=end_date) }}"
+       class="btn btn-outline-primary">Export Excel</a>
+    <a href="{{ url_for('export_closed_leads', type='pdf', start_date=start_date, end_date=end_date) }}"
+       class="btn btn-outline-danger">Export PDF</a>
+  </div>
+
+  <!-- 🗄️ Archive All Button -->
+  <form action="{{ url_for('archive_all_closed') }}" method="POST" class="ms-2">
+    <button type="submit" class="btn btn-outline-secondary">Archive All</button>
+  </form>
+</div>
+
+<!-- 📋 Closed Leads Table -->
 <div class="card mt-3">
   <div class="table-responsive">
     <table class="table table-vcenter card-table">
@@ -72,12 +91,9 @@
             <div class="dropdown">
               <button class="btn dropdown-toggle align-text-top" data-bs-toggle="dropdown">Actions</button>
               <div class="dropdown-menu dropdown-menu-end">
-                <!-- Reopen Lead -->
                 <form action="{{ url_for('reopen_lead', lead_id=lead.id) }}" method="POST">
                   <button type="submit" class="dropdown-item">Reopen</button>
                 </form>
-
-                <!-- Delete Permanently -->
                 <form action="{{ url_for('delete_lead_permanent', lead_id=lead.id) }}" method="POST"
                       onsubmit="return confirm('Are you sure you want to permanently delete this lead?');">
                   <button type="submit" class="dropdown-item text-danger">Delete Permanently</button>
