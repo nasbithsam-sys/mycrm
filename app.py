@@ -310,6 +310,7 @@ def leads():
         sub_location = request.form.get("sub_location", "")
         added_by = request.form["added_by"].strip()
 
+        # Create new lead object
         new_lead = Lead(
             department=department,
             status="New Lead",
@@ -323,25 +324,46 @@ def leads():
             added_by=added_by
         )
 
-        if 'attachment' in request.files:
-            file = request.files['attachment']
-            if file and file.filename != '':
-                if allowed_file(file.filename):
-                    original = secure_filename(file.filename)
-                    unique_prefix = uuid.uuid4().hex
-                    filename = f"{datetime.now().strftime('%Y%m%d_%H%M%S')}_{unique_prefix}_{original}"
-                    file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-                    file.save(file_path)
-                    new_lead.attachment_filename = filename
-                    flash("✅ File uploaded successfully!", "success")
-                else:
-                    flash("⚠️ Invalid file type.", "warning")
+        # ---------------------------
+        # File Upload Handling
+        # ---------------------------
+        uploaded_file = request.files.get('attachment')  # safe access
 
+        if uploaded_file and uploaded_file.filename:
+            filename = uploaded_file.filename.strip()
+
+            if filename != '' and allowed_file(filename):
+                # Make sure upload folder exists
+                os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+
+                # Generate unique name
+                original = secure_filename(filename)
+                unique_prefix = uuid.uuid4().hex
+                new_filename = f"{datetime.now().strftime('%Y%m%d_%H%M%S')}_{unique_prefix}_{original}"
+                file_path = os.path.join(app.config['UPLOAD_FOLDER'], new_filename)
+
+                # Save file
+                uploaded_file.save(file_path)
+
+                # Save filename to DB
+                new_lead.attachment_filename = new_filename
+                flash("✅ File uploaded successfully!", "success")
+            else:
+                flash("⚠️ Invalid or empty file name.", "warning")
+        else:
+            flash("ℹ️ No attachment uploaded.", "info")
+
+        # ---------------------------
+        # Add new lead to DB
+        # ---------------------------
         db.session.add(new_lead)
         db.session.commit()
         flash("✅ Lead added successfully!", "success")
-        return redirect(url_for("leads"))
+        return redirect(url_for("leads"))  # ✅ <-- now inside the function
 
+    # ---------------------------
+    # If GET request → show leads
+    # ---------------------------
     initial_statuses = ["New Lead", "Issue in Lead", "Updated"]
     if current_user.role == "admin":
         leads_list = Lead.query.filter(Lead.status.in_(initial_statuses)).all()
@@ -349,6 +371,8 @@ def leads():
         leads_list = Lead.query.filter_by(user_id=current_user.id).filter(Lead.status.in_(initial_statuses)).all()
 
     return render_template("leads.html", leads=leads_list, departments=DEPARTMENTS)
+
+
 
 # ---------------------------
 # Leads (Admin View & Edit)
