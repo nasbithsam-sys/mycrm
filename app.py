@@ -111,14 +111,8 @@ def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in app.config['ALLOWED_EXTENSIONS']
 
 def normalize_phone(num: str) -> str:
-    digits = re.sub(r'\D+', '', num)
-    if digits.startswith('92'):
-        return '+' + digits
-    if digits.startswith('0'):
-        return '+92' + digits[1:]
-    if not digits.startswith('+'):
-        return '+' + digits
-    return digits
+    """Return the phone number exactly as entered (no formatting)."""
+    return num.strip()
 
 def admin_required(view):
     @wraps(view)
@@ -421,38 +415,47 @@ def view_leads():
 def edit_lead(lead_id):
     lead = Lead.query.get_or_404(lead_id)
 
-    if current_user.role != "admin" and lead.user_id != current_user.id:
-        flash("⚠️ You can only edit your own leads.", "danger")
-        return redirect(url_for("dashboard"))
+    # Non-admin users can only edit their own leads that have 'Issue in Lead'
+    if current_user.role != "admin":
+        if lead.user_id != current_user.id or lead.status != "Issue in Lead":
+            flash("⚠️ You can only edit your own leads that have 'Issue in Lead' status.", "danger")
+            return redirect(url_for("dashboard"))
 
     if request.method == "POST":
-        old_values = {
-            "customer_name": lead.customer_name,
-            "customer_number": lead.customer_number,
-            "context_service": lead.context_service,
-            "department": lead.department,
-            "main_area": lead.main_area,
-            "second_main_area": lead.second_main_area,
-            "sub_location": lead.sub_location,
-        }
-
+        # Update text fields
         lead.customer_name = request.form.get("customer_name", lead.customer_name)
-        lead.customer_number = normalize_phone(request.form.get("customer_number", lead.customer_number))
+        lead.customer_number = request.form.get("customer_number", lead.customer_number)
         lead.context_service = request.form.get("context_service", lead.context_service)
         lead.department = request.form.get("department", lead.department)
         lead.main_area = request.form.get("main_area", lead.main_area)
         lead.second_main_area = request.form.get("second_main_area", lead.second_main_area)
         lead.sub_location = request.form.get("sub_location", lead.sub_location)
 
-        changes_made = any(getattr(lead, k) != v for k, v in old_values.items())
+        # ---------------------------
+        # Handle attachment change (Cloudinary)
+        # ---------------------------
+        uploaded_file = request.files.get("attachment")
 
-        if changes_made:
-            lead.status = "Updated"
-            flash("✏️ Lead updated successfully and status changed to 'Updated'.", "success")
-        else:
-            flash("✏️ Lead information saved (no changes detected).", "info")
+        if uploaded_file and uploaded_file.filename.strip() != "":
+            if allowed_file(uploaded_file.filename):
+                try:
+                    uploaded_file.seek(0)
+                    upload_result = cloudinary.uploader.upload(
+                        uploaded_file,
+                        folder="leads",
+                        resource_type="auto",
+                        unique_filename=True,
+                        overwrite=False
+                    )
+                    lead.attachment_filename = upload_result["secure_url"]
+                    flash("✅ File updated successfully!", "success")
+                except Exception as e:
+                    flash(f"❌ Upload failed: {str(e)}", "danger")
+            else:
+                flash("⚠️ Invalid file type.", "warning")
 
         db.session.commit()
+        flash("✏️ Lead updated successfully.", "success")
         return redirect(url_for("dashboard"))
 
     return render_template("edit_lead.html", lead=lead, departments=DEPARTMENTS)
