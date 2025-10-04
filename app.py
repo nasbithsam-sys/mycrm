@@ -310,6 +310,9 @@ def add_lead():
 @login_required
 def leads():
     if request.method == "POST":
+        # ----------------------------
+        # 1️⃣ Collect form data
+        # ----------------------------
         customer_name = request.form["customer_name"].strip()
         customer_number = normalize_phone(request.form["customer_number"].strip())
         context_service = request.form["context_service"].strip()
@@ -319,7 +322,9 @@ def leads():
         sub_location = request.form.get("sub_location", "")
         added_by = request.form["added_by"].strip()
 
-        # ✅ Create new lead object
+        # ----------------------------
+        # 2️⃣ Create new lead instance
+        # ----------------------------
         new_lead = Lead(
             department=department,
             status="New Lead",
@@ -333,35 +338,53 @@ def leads():
             added_by=added_by
         )
 
-        # ✅ Handle file upload (to Cloudinary)
-        uploaded_file = request.files.get('attachment')
-        if uploaded_file and uploaded_file.filename.strip() != '':
+        # ----------------------------
+        # 3️⃣ Handle file upload (Cloudinary)
+        # ----------------------------
+        uploaded_file = request.files.get("attachment")
+
+        if uploaded_file and uploaded_file.filename.strip() != "":
             if allowed_file(uploaded_file.filename):
                 try:
+                    # Reset pointer so file reads once only
+                    uploaded_file.seek(0)
+
+                    # Upload to Cloudinary
                     upload_result = cloudinary.uploader.upload(
                         uploaded_file,
-                        folder="leads",        # folder in Cloudinary
-                        resource_type="auto"   # handles images, pdfs, docs, etc.
+                        folder="leads",        # Cloudinary folder name
+                        resource_type="auto",  # handles images, PDFs, docs
+                        unique_filename=True,  # avoid duplicate uploads
+                        overwrite=False
                     )
-                    # Save secure Cloudinary URL in database
+
+                    # Save public URL in database
                     new_lead.attachment_filename = upload_result["secure_url"]
                     flash("✅ File uploaded to Cloudinary successfully!", "success")
 
                 except Exception as e:
                     flash(f"❌ Cloud upload failed: {str(e)}", "danger")
+
             else:
                 flash("⚠️ Invalid file type.", "warning")
         else:
             flash("ℹ️ No attachment uploaded.", "info")
 
-        # ✅ Commit lead to database
+        # ----------------------------
+        # 4️⃣ Commit lead to database
+        # ----------------------------
         db.session.add(new_lead)
         db.session.commit()
         flash("✅ Lead added successfully!", "success")
+
+        # Redirect prevents re-POSTing on refresh
         return redirect(url_for("leads"))
 
-    # ✅ Show all leads depending on user role
+    # ----------------------------
+    # 5️⃣ Display existing leads
+    # ----------------------------
     initial_statuses = ["New Lead", "Issue in Lead", "Updated"]
+
     if current_user.role == "admin":
         leads_list = Lead.query.filter(Lead.status.in_(initial_statuses)).all()
     else:
