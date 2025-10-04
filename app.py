@@ -815,37 +815,6 @@ def export_leads():
     response.headers.set("Content-Disposition", "attachment", filename=f"leads_export_{datetime.now().strftime('%Y%m%d')}.csv")
     return response
 
-@app.route("/export_closed_leads")
-@login_required
-@admin_required
-def export_closed_leads():
-    closed_leads = Lead.query.filter_by(status="Done").all()
-    output = io.StringIO()
-    writer = csv.writer(output)
-    writer.writerow(["ID", "Customer Name", "Customer Number", "Department", "Sub Status",
-                     "Main Area", "Second Area", "Sub Location", "Context Service", "Added By",
-                     "Created Date", "Closed At", "Closed By"])
-    for lead in closed_leads:
-        writer.writerow([
-            lead.id,
-            lead.customer_name,
-            lead.customer_number,
-            lead.department,
-            lead.sub_status or '',
-            lead.main_area or '',
-            lead.second_main_area or '',
-            lead.sub_location or '',
-            lead.context_service or '',
-            lead.added_by or '',
-            lead.created_at.strftime('%Y-%m-%d %H:%M') if lead.created_at else '',
-            lead.closed_at.strftime('%Y-%m-%d %H:%M') if lead.closed_at else '',
-            (lead.closed_by_user.username if lead.closed_by_user else '')
-        ])
-    response = make_response(output.getvalue())
-    response.headers["Content-Disposition"] = f"attachment; filename=closed_leads_{datetime.now().strftime('%Y%m%d')}.csv"
-    response.headers["Content-type"] = "text/csv"
-    return response
-
 # ---------------------------
 # Archive / Delete / Reopen
 # ---------------------------
