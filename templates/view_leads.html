@@ -11,18 +11,32 @@
     </div>
     <div class="col-auto">
       <div class="btn-list">
-        <a href="{{ url_for('export_leads') }}" class="btn btn-success">
-          <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-download" width="16" height="16" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-            <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-            <path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2 -2v-2" />
-            <path d="M7 11l5 5l5 -5" />
-            <path d="M12 4l0 12" />
-          </svg>
-          Export CSV
-        </a>
+        <!-- ✅ Export Dropdown -->
+        <div class="dropdown">
+          <button class="btn btn-outline-success dropdown-toggle" data-bs-toggle="dropdown">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-download" width="16" height="16"
+                 viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round"
+                 stroke-linejoin="round">
+              <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+              <path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2 -2v-2" />
+              <path d="M7 11l5 5l5 -5" />
+              <path d="M12 4l0 12" />
+            </svg>
+            Export Report
+          </button>
+          <div class="dropdown-menu dropdown-menu-end">
+            <a class="dropdown-item" href="{{ url_for('export_closed_leads', type='csv') }}">Export as CSV</a>
+            <a class="dropdown-item" href="{{ url_for('export_closed_leads', type='xlsx') }}">Export as Excel</a>
+            <a class="dropdown-item" href="{{ url_for('export_closed_leads', type='pdf') }}">Export as PDF</a>
+          </div>
+        </div>
+
+        <!-- ➕ Add New Lead -->
         <a href="{{ url_for('add_lead') }}" class="btn btn-primary">
-          <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-plus" width="16" height="16" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-            <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+          <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-plus" width="16" height="16"
+               viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round"
+               stroke-linejoin="round">
+            <path stroke="none" d="M0 0h24v24H0z" fill="none" />
             <path d="M12 5l0 14" />
             <path d="M5 12l14 0" />
           </svg>
@@ -33,7 +47,7 @@
   </div>
 </div>
 
-<!-- Filters -->
+<!-- 🔽 Filters Section -->
 <div class="card mb-4">
   <div class="card-header">
     <h3 class="card-title">Filters</h3>
@@ -69,7 +83,7 @@
   </div>
 </div>
 
-<!-- Leads Table -->
+<!-- 📋 Leads Table -->
 <div class="card">
   <div class="card-header">
     <h3 class="card-title">All Active Leads</h3>
@@ -101,9 +115,7 @@
           {% for lead in leads %}
           <tr>
             <td><span class="text-muted">#{{ lead.id }}</span></td>
-            <td>
-              <div class="font-weight-medium">{{ lead.customer_name }}</div>
-            </td>
+            <td><div class="font-weight-medium">{{ lead.customer_name }}</div></td>
             <td>{{ lead.customer_number }}</td>
             <td><span class="badge bg-primary-lt">{{ lead.department }}</span></td>
             <td>{{ lead.added_by }}</td>
@@ -150,7 +162,7 @@
             </td>
           </tr>
 
-          <!-- View Modal -->
+          <!-- 📄 Lead Details Modal -->
           <div class="modal fade" id="viewLead{{ lead.id }}" tabindex="-1">
             <div class="modal-dialog modal-lg">
               <div class="modal-content">
@@ -181,4 +193,5 @@
     {% endif %}
   </div>
 </div>
+
 {% endblock %}

@@ -538,22 +538,26 @@ from reportlab.pdfgen import canvas
 @app.route("/closed_leads")
 @login_required
 def closed_leads():
+    from datetime import datetime, timedelta
+
+    # Get date filters (optional)
     start_date = request.args.get("start_date")
     end_date = request.args.get("end_date")
 
+    # If no range selected → show last 7 days by default
+    if not start_date or not end_date:
+        end_date = datetime.now().strftime("%Y-%m-%d")
+        start_date = (datetime.now() - timedelta(days=7)).strftime("%Y-%m-%d")
+
+    # Build query for closed leads
     query = Lead.query.options(joinedload(Lead.closed_by_user)).filter_by(status="Done")
 
-    if start_date and end_date:
-        start = datetime.strptime(start_date, "%Y-%m-%d")
-        end = datetime.strptime(end_date, "%Y-%m-%d")
-        query = query.filter(Lead.closed_at.between(start, end))
+    start = datetime.strptime(start_date, "%Y-%m-%d")
+    end = datetime.strptime(end_date, "%Y-%m-%d")
+    query = query.filter(Lead.closed_at.between(start, end))
 
     closed = query.all()
     total_leads = len(closed)
-
-    # Auto-fill "today" if end_date missing
-    if not end_date:
-        end_date = datetime.now().strftime("%Y-%m-%d")
 
     return render_template(
         "closed_leads.html",
@@ -701,20 +705,25 @@ def export_closed_leads():
     import io, csv, pandas as pd
     from reportlab.pdfgen import canvas
 
+    # Get parameters
     file_type = request.args.get("type", "csv")
     start_date = request.args.get("start_date")
     end_date = request.args.get("end_date")
 
+    # If missing → default last 7 days
+    if not start_date or not end_date:
+        end_date = datetime.now().strftime("%Y-%m-%d")
+        start_date = (datetime.now() - timedelta(days=7)).strftime("%Y-%m-%d")
+
+    start = datetime.strptime(start_date, "%Y-%m-%d")
+    end = datetime.strptime(end_date, "%Y-%m-%d")
+
+    # Query leads that were closed in that period
     query = Lead.query.options(joinedload(Lead.closed_by_user)).filter_by(status="Done")
-
-    if start_date and end_date:
-        start = datetime.strptime(start_date, "%Y-%m-%d")
-        end = datetime.strptime(end_date, "%Y-%m-%d")
-        query = query.filter(Lead.closed_at.between(start, end))
-
+    query = query.filter(Lead.closed_at.between(start, end))
     leads = query.all()
 
-    # 🧩 Build full dataset
+    # 🧩 Build dataset
     data = [
         {
             "ID": lead.id,
@@ -734,10 +743,10 @@ def export_closed_leads():
         for lead in leads
     ]
 
-    # 🛑 Handle no leads found
+    # 🛑 If nothing found
     if not data:
-        flash("⚠️ No closed leads found for selected range.", "warning")
-        return redirect(url_for("closed_leads"))
+        flash("⚠️ No closed leads found in selected range.", "warning")
+        return redirect(url_for("closed_leads", start_date=start_date, end_date=end_date))
 
     # ---------------- CSV Export ----------------
     if file_type == "csv":
@@ -750,7 +759,7 @@ def export_closed_leads():
             io.BytesIO(output.getvalue().encode()),
             mimetype="text/csv",
             as_attachment=True,
-            download_name="closed_leads.csv"
+            download_name=f"closed_leads_{start_date}_to_{end_date}.csv"
         )
 
     # ---------------- Excel Export ----------------
@@ -763,7 +772,7 @@ def export_closed_leads():
             output,
             mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
             as_attachment=True,
-            download_name="closed_leads.xlsx"
+            download_name=f"closed_leads_{start_date}_to_{end_date}.xlsx"
         )
 
     # ---------------- PDF Export ----------------
@@ -777,7 +786,7 @@ def export_closed_leads():
                 f"{row['Department']} | {row['Service']} | {row['Main Area']} | "
                 f"{row['Closed By']} | {row['Closed At']}"
             )
-            p.drawString(30, y, line[:180])  # limit line length
+            p.drawString(30, y, line[:180])  # limit text width
             y -= 20
             if y < 50:
                 p.showPage()
@@ -788,41 +797,13 @@ def export_closed_leads():
             output,
             mimetype="application/pdf",
             as_attachment=True,
-            download_name="closed_leads.pdf"
+            download_name=f"closed_leads_{start_date}_to_{end_date}.pdf"
         )
 
+    # ---------------- Invalid format ----------------
     else:
         flash("⚠️ Invalid export format selected.", "danger")
-        return redirect(url_for("closed_leads")) 
-
-# ---------------------------
-# Archive / Delete / Reopen
-# ---------------------------
-@app.route("/archive_all_closed", methods=["POST"])
-@login_required
-@admin_required
-def archive_all_closed():
-    closed_leads = Lead.query.filter_by(status="Done", archived=False).all()
-    for lead in closed_leads:
-        lead.archived = True
-    db.session.commit()
-    flash("📦 All closed leads archived.", "success")
-    return redirect(url_for("closed_leads"))
-
-@app.route("/reopen_lead/<int:lead_id>", methods=["POST"])
-@login_required
-def reopen_lead(lead_id):
-    lead = Lead.query.get_or_404(lead_id)
-    if lead.status != "Done":
-        flash("⚠️ Lead is not closed.", "warning")
-        return redirect(url_for("closed_leads"))
-    lead.status = "New Lead"
-    lead.closed_at = None
-    lead.closed_by = None
-    lead.archived = False
-    db.session.commit()
-    flash("✅ Lead reopened.", "success")
-    return redirect(url_for("closed_leads"))
+        return redirect(url_for("closed_leads", start_date=start_date, end_date=end_date))
 
 @app.route("/delete_lead_permanent/<int:lead_id>", methods=["POST"])
 @login_required
