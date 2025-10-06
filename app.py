@@ -457,6 +457,52 @@ def edit_lead(lead_id):
 
     return render_template("edit_lead.html", lead=lead, departments=DEPARTMENTS)
 
+# ---------------------------
+# Export All Active Leads (CSV)
+# ---------------------------
+@app.route("/export_leads")
+@login_required
+@admin_required
+def export_leads():
+    leads = Lead.query.filter(Lead.status.in_([
+        "Pending Outreach", "Texted / Call Done", "In Progress"
+    ])).all()
+
+    if not leads:
+        flash("⚠️ No active leads found to export.", "warning")
+        return redirect(url_for("view_leads"))
+
+    data = [
+        {
+            "ID": l.id,
+            "Customer Name": l.customer_name,
+            "Number": l.customer_number,
+            "Department": l.department,
+            "Service": l.context_service,
+            "Main Area": l.main_area,
+            "Second Area": l.second_main_area or "",
+            "Sub Location": l.sub_location or "",
+            "Added By": l.added_by,
+            "Status": l.status,
+            "Created At": l.created_at.strftime("%Y-%m-%d %H:%M") if l.created_at else ""
+        }
+        for l in leads
+    ]
+
+    output = io.StringIO()
+    writer = csv.DictWriter(output, fieldnames=data[0].keys())
+    writer.writeheader()
+    writer.writerows(data)
+    output.seek(0)
+
+    return send_file(
+        io.BytesIO(output.getvalue().encode()),
+        mimetype="text/csv",
+        as_attachment=True,
+        download_name="active_leads.csv"
+    )
+
+
 @app.route("/resolve_lead/<int:lead_id>", methods=["POST"])
 @login_required
 def resolve_lead(lead_id):
@@ -736,7 +782,7 @@ def export_closed_leads():
             "Sub Location": lead.sub_location or "",
             "Added By": lead.added_by,
             "Closed At": lead.closed_at.strftime("%Y-%m-%d %H:%M") if lead.closed_at else "",
-            "Closed By": lead.closed_by_user.username if lead.closed_by_user else "Unknown",
+            "Closed By": getattr(lead.closed_by_user, "username", "Unknown"),
             "Attachment": lead.attachment_filename or "-",
             "Status": lead.status,
         }
@@ -804,6 +850,21 @@ def export_closed_leads():
     else:
         flash("⚠️ Invalid export format selected.", "danger")
         return redirect(url_for("closed_leads", start_date=start_date, end_date=end_date))
+    
+# ---------------------------
+# Archive All Closed Leads
+# ---------------------------
+@app.route("/archive_all_closed", methods=["POST"])
+@login_required
+@admin_required
+def archive_all_closed():
+    closed_leads = Lead.query.filter_by(status="Done", archived=False).all()
+    for lead in closed_leads:
+        lead.archived = True
+    db.session.commit()
+    flash("📦 All closed leads have been archived successfully!", "success")
+    return redirect(url_for("closed_leads"))
+    
 
 @app.route("/delete_lead_permanent/<int:lead_id>", methods=["POST"])
 @login_required
