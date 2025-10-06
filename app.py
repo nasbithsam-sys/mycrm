@@ -864,6 +864,18 @@ def archive_all_closed():
     db.session.commit()
     flash("📦 All closed leads have been archived successfully!", "success")
     return redirect(url_for("closed_leads"))
+
+@app.route("/reopen_lead/<int:lead_id>", methods=["POST"])
+@login_required
+@admin_required
+def reopen_lead(lead_id):
+    lead = Lead.query.get_or_404(lead_id)
+    lead.status = "In Progress"
+    lead.closed_at = None
+    lead.closed_by = None
+    db.session.commit()
+    flash("✅ Lead reopened successfully.", "success")
+    return redirect(url_for("closed_leads"))
     
 
 @app.route("/delete_lead_permanent/<int:lead_id>", methods=["POST"])
