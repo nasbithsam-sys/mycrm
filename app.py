@@ -48,7 +48,7 @@ import secrets
 # ✅ Secure secret key
 app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", secrets.token_hex(16))
 app.config["SESSION_PERMANENT"] = False
-app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(minutes=30)  # auto logout after 30 mins
+app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(hours=3)  # auto logout after 3 hours
 
 # ---------------------------
 # Database Config
