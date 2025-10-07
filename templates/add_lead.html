@@ -95,7 +95,7 @@
           </div>
         </div>
 
-        <!-- ✅ Modern Drag & Drop Upload -->
+        <!-- ✅ Modern Drag, Click, or Paste Upload -->
         <div class="col-lg-6">
           <div class="mb-3">
             <label class="form-label">Attachment (Reference Photo / Doc)</label>
@@ -107,7 +107,9 @@
             <div id="drop-zone" class="border border-dashed border-2 rounded text-center p-4 bg-light" style="cursor:pointer;">
               <div class="text-muted">
                 <i class="ti ti-cloud-upload fs-1 text-primary d-block mb-2"></i>
-                <p class="mb-1 fw-semibold text-dark">Drag & drop file here or <span class="text-primary">click to upload</span></p>
+                <p class="mb-1 fw-semibold text-dark">
+                  Drag & drop, <span class="text-primary">click</span>, or <span class="text-success">paste (Ctrl+V)</span> an image
+                </p>
                 <small class="text-muted">Allowed: JPG, PNG, GIF, PDF, DOC (max 16MB)</small>
               </div>
             </div>
@@ -128,7 +130,7 @@
   </div>
 </div>
 
-<!-- ✅ Drag & Drop Script -->
+<!-- ✅ Drag, Drop, and Paste Script -->
 <script>
 const dropZone = document.getElementById('drop-zone');
 const fileInput = document.getElementById('attachment');
@@ -177,6 +179,30 @@ function showPreview(file) {
   }
 
   previewArea.appendChild(fileBox);
+}
+
+// ✅ Copy & Paste (Ctrl+V) image support
+document.addEventListener('paste', (event) => {
+  const items = (event.clipboardData || event.originalEvent.clipboardData).items;
+  for (const item of items) {
+    if (item.type.indexOf('image') !== -1) {
+      const file = item.getAsFile();
+      const dt = new DataTransfer();
+      dt.items.add(file);
+      fileInput.files = dt.files;
+      showPreview(file);
+      flashPasteEffect();
+      break;
+    }
+  }
+});
+
+// ✅ Subtle green flash effect when pasted
+function flashPasteEffect() {
+  dropZone.classList.add('bg-success', 'bg-opacity-25');
+  setTimeout(() => {
+    dropZone.classList.remove('bg-success', 'bg-opacity-25');
+  }, 400);
 }
 </script>
 
