@@ -11,61 +11,65 @@
         <span id="update-time">{{ now.strftime('%H:%M') if now else 'Just now' }}</span>
       </div>
     </div>
+    {% if current_user.role != 'processor' %}
     <div class="col-auto">
       <div class="btn-list">
         <a href="{{ url_for('add_lead') }}" class="btn btn-primary">
-          <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+          <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24"
+               viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"
+               fill="none" stroke-linecap="round" stroke-linejoin="round">
             <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-            <path d="M12 5l0 14" />
-            <path d="M5 12l14 0" />
+            <path d="M12 5v14" />
+            <path d="M5 12h14" />
           </svg>
           Add New Lead
         </a>
       </div>
     </div>
+    {% endif %}
   </div>
 </div>
 
 {% if is_admin %}
-<!-- ============================ -->
-<!-- 🔹 ADMIN DASHBOARD -->
-<!-- ============================ -->
-<div class="row mb-4">
-  <div class="col-md-6">
-    <div class="card">
-      <div class="card-header">
-        <h3 class="card-title">Leads by Department</h3>
-      </div>
-      <div class="card-body text-center">
-        <canvas id="deptChart" width="100%" height="80"></canvas>
-      </div>
-    </div>
-  </div>
+<!-- ========================= -->
+<!-- 🔹 ADMIN DASHBOARD (original unchanged) -->
+<!-- ========================= -->
 
-  <div class="col-md-6">
-    <div class="card">
-      <div class="card-body text-center">
-        <h3 class="card-title">Admin Summary</h3>
-        <p class="text-muted mb-2">Total Leads: <strong>{{ total_leads }}</strong></p>
-        <p class="text-muted mb-2">Your Leads: <strong>{{ my_leads }}</strong></p>
-        <p class="text-muted mb-0">New Today: <strong>{{ new_today }}</strong></p>
-      </div>
-    </div>
-  </div>
-</div>
-
-{% elif is_processor %}
-<!-- ============================ -->
-<!-- 🟢 PROCESSOR DASHBOARD -->
-<!-- ============================ -->
 <div class="row row-deck mb-4">
-  <div class="col-sm-6 col-lg-4">
+  <div class="col-sm-6 col-lg-3">
+    <div class="card card-sm kpi-card">
+      <div class="card-body">
+        <div class="row align-items-center">
+          <div class="col-auto">
+            <span class="bg-primary text-white avatar">
+              <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24"
+                   stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                <path d="M9 7m-4 0a4 4 0 1 0 8 0a4 4 0 1 0 -8 0" />
+                <path d="M3 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" />
+                <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                <path d="M21 21v-2a4 4 0 0 0 -3 -3.85" />
+              </svg>
+            </span>
+          </div>
+          <div class="col">
+            <div class="font-weight-medium">TOTAL LEADS</div>
+            <div class="h2 mt-2 mb-0 text-primary">{{ total_leads }}</div>
+            <div class="text-muted">All time</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-sm-6 col-lg-3">
     <div class="card card-sm kpi-card">
       <div class="card-body">
         <div class="row align-items-center">
           <div class="col-auto">
             <span class="bg-success text-white avatar">
-              <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+              <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24"
+                   stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
                 <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
                 <path d="M8 7a4 4 0 1 0 8 0a4 4 0 0 0 -8 0" />
                 <path d="M6 21v-2a4 4 0 0 1 4 -4h4" />
@@ -83,13 +87,14 @@
     </div>
   </div>
 
-  <div class="col-sm-6 col-lg-4">
+  <div class="col-sm-6 col-lg-3">
     <div class="card card-sm kpi-card">
       <div class="card-body">
         <div class="row align-items-center">
           <div class="col-auto">
             <span class="bg-warning text-white avatar">
-              <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+              <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24"
+                   stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
                 <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
                 <path d="M12 12m-9 0a9 9 0 1 0 18 0a9 9 0 1 0 -18 0" />
                 <path d="M9 12l6 0" />
@@ -98,9 +103,38 @@
             </span>
           </div>
           <div class="col">
-            <div class="font-weight-medium">NEW LEADS TODAY</div>
+            <div class="font-weight-medium">NEW TODAY</div>
             <div class="h2 mt-2 mb-0 text-warning">{{ new_today }}</div>
-            <div class="text-muted">Created today</div>
+            <div class="text-muted">Today's progress</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-sm-6 col-lg-3">
+    <div class="card card-sm kpi-card">
+      <div class="card-body">
+        <div class="row align-items-center">
+          <div class="col-auto">
+            <span class="bg-info text-white avatar">
+              <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24"
+                   stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                <path d="M3 21l18 0" />
+                <path d="M5 21v-14l8 -4v18" />
+                <path d="M19 21v-10l-6 -4" />
+                <path d="M9 9l0 .01" />
+                <path d="M9 12l0 .01" />
+                <path d="M9 15l0 .01" />
+                <path d="M9 18l0 .01" />
+              </svg>
+            </span>
+          </div>
+          <div class="col">
+            <div class="font-weight-medium">DEPARTMENTS</div>
+            <div class="h2 mt-2 mb-0 text-info">{{ dept_labels|length if dept_labels else 0 }}</div>
+            <div class="text-muted">Active categories</div>
           </div>
         </div>
       </div>
@@ -108,101 +142,150 @@
   </div>
 </div>
 
-<!-- Quick Processor Access -->
-<div class="row mt-4">
-  <div class="col-12">
+<!-- Chart Section -->
+<div class="row row-deck">
+  {% if dept_labels and dept_counts %}
+  <div class="col-lg-6">
     <div class="card">
       <div class="card-header">
-        <h3 class="card-title">Quick Access</h3>
+        <h3 class="card-title">Leads by Department</h3>
       </div>
       <div class="card-body">
-        <div class="row g-3">
-          <div class="col-md-4">
-            <a href="{{ url_for('leads') }}" class="card card-sm bg-success text-white action-tile">
-              <div class="card-body text-center p-3">
-                <svg xmlns="http://www.w3.org/2000/svg" class="icon mb-2" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                  <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-                  <path d="M9 6l11 0" />
-                  <path d="M9 12l11 0" />
-                  <path d="M9 18l11 0" />
-                  <path d="M5 6l0 .01" />
-                  <path d="M5 12l0 .01" />
-                  <path d="M5 18l0 .01" />
-                </svg>
-                <div class="font-weight-medium">My Leads</div>
-              </div>
-            </a>
-          </div>
-
-          <div class="col-md-4">
-            <a href="{{ url_for('view_leads') }}" class="card card-sm bg-primary text-white action-tile">
-              <div class="card-body text-center p-3">
-                <svg xmlns="http://www.w3.org/2000/svg" class="icon mb-2" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                  <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-                  <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" />
-                  <path d="M21 12c-2.4 4 -5.4 6 -9 6c-3.6 0 -6.6 -2 -9 -6c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6" />
-                </svg>
-                <div class="font-weight-medium">All Leads</div>
-              </div>
-            </a>
-          </div>
-
-          <div class="col-md-4">
-            <a href="{{ url_for('add_lead') }}" class="card card-sm bg-info text-white action-tile">
-              <div class="card-body text-center p-3">
-                <svg xmlns="http://www.w3.org/2000/svg" class="icon mb-2" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                  <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-                  <path d="M12 5l0 14" />
-                  <path d="M5 12l14 0" />
-                </svg>
-                <div class="font-weight-medium">Add Lead</div>
-              </div>
-            </a>
-          </div>
+        <div class="chart-container" style="position: relative; height: 320px;">
+          <canvas id="deptChart"></canvas>
         </div>
       </div>
     </div>
+  </div>
+  <div class="col-lg-6">
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title">Department Statistics</h3>
+      </div>
+      <div class="card-body">
+        <div class="table-responsive">
+          <table class="table table-vcenter">
+            <thead>
+              <tr><th>Department</th><th>Leads</th><th style="width: 40%">Progress</th></tr>
+            </thead>
+            <tbody>
+              {% for i in range(dept_labels|length) %}
+              <tr>
+                <td><span class="badge bg-primary-lt">{{ dept_labels[i] }}</span></td>
+                <td><strong>{{ dept_counts[i] }}</strong></td>
+                <td>
+                  <div class="progress progress-sm">
+                    <div class="progress-bar"
+                      style="width: {{ (dept_counts[i] / total_leads * 100) if total_leads > 0 else 0 }}%">
+                    </div>
+                  </div>
+                  <div class="small text-muted">
+                    {{ "%.1f"|format((dept_counts[i] / total_leads * 100) if total_leads > 0 else 0) }}%
+                  </div>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+{% elif is_processor %}
+<!-- ========================= -->
+<!-- 🟢 PROCESSOR DASHBOARD -->
+<!-- ========================= -->
+<div class="row row-deck mb-4">
+  <div class="col-sm-6 col-lg-4">
+    <div class="card card-sm kpi-card">
+      <div class="card-body text-center">
+        <div class="font-weight-medium text-success">MY LEADS</div>
+        <div class="h2 mt-2 mb-0 text-success">{{ my_leads }}</div>
+        <div class="text-muted">Assigned to you</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-sm-6 col-lg-4">
+    <div class="card card-sm kpi-card">
+      <div class="card-body text-center">
+        <div class="font-weight-medium text-warning">NEW TODAY</div>
+        <div class="h2 mt-2 mb-0 text-warning">{{ new_today }}</div>
+        <div class="text-muted">Created today</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row mt-4">
+  <div class="col-md-6">
+    <a href="{{ url_for('leads') }}" class="card card-sm bg-success text-white action-tile">
+      <div class="card-body text-center p-3">
+        <svg xmlns="http://www.w3.org/2000/svg" class="icon mb-2" width="24" height="24"
+             viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"
+             fill="none" stroke-linecap="round" stroke-linejoin="round">
+          <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+          <path d="M9 6h11M9 12h11M9 18h11M5 6v.01M5 12v.01M5 18v.01" />
+        </svg>
+        <div class="font-weight-medium">My Leads</div>
+      </div>
+    </a>
+  </div>
+  <div class="col-md-6">
+    <a href="{{ url_for('view_leads') }}" class="card card-sm bg-primary text-white action-tile">
+      <div class="card-body text-center p-3">
+        <svg xmlns="http://www.w3.org/2000/svg" class="icon mb-2" width="24" height="24"
+             viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"
+             fill="none" stroke-linecap="round" stroke-linejoin="round">
+          <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+          <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" />
+          <path d="M21 12c-2.4 4 -5.4 6 -9 6s-6.6-2-9-6c2.4-4 5.4-6 9-6s6.6 2 9 6" />
+        </svg>
+        <div class="font-weight-medium">All Leads</div>
+      </div>
+    </a>
   </div>
 </div>
 
 {% else %}
-<!-- ============================ -->
-<!-- 🔵 USER DASHBOARD -->
-<!-- ============================ -->
+<!-- ========================= -->
+<!-- 🔵 USER DASHBOARD (original unchanged) -->
+<!-- ========================= -->
 {{ super() }}
 {% endif %}
 {% endblock %}
 
 {% block scripts %}
-{% if is_admin %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    {% if dept_labels and dept_counts %}
-    const ctx = document.getElementById('deptChart');
-    if (ctx) {
-        new Chart(ctx.getContext('2d'), {
-            type: 'doughnut',
-            data: {
-                labels: {{ dept_labels|default([])|tojson }},
-                datasets: [{
-                    data: {{ dept_counts|default([])|tojson }},
-                    backgroundColor: ['#206bc4','#2fb344','#f59f00','#e64980','#20c997','#5c7cfa','#4299e1','#868e96'],
-                    borderColor: '#fff',
-                    borderWidth: 2
-                }]
-            },
-            options: {
-                responsive: true,
-                plugins: {
-                    legend: { position: 'bottom', labels: { usePointStyle: true, padding: 20, font: { size: 11 } } }
-                },
-                cutout: '65%'
-            }
-        });
-    }
-    {% endif %}
+  {% if is_admin and dept_labels and dept_counts %}
+  const ctx = document.getElementById('deptChart');
+  if (ctx) {
+    new Chart(ctx.getContext('2d'), {
+      type: 'doughnut',
+      data: {
+        labels: {{ dept_labels|default([])|tojson }},
+        datasets: [{
+          data: {{ dept_counts|default([])|tojson }},
+          backgroundColor: ['#206bc4','#2fb344','#f59f00','#4299e1','#e64980','#868e96','#5c7cfa','#20c997'],
+          borderColor: '#fff',
+          borderWidth: 2
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: { position: 'bottom', labels: { usePointStyle: true, padding: 20, font: { size: 11 } } }
+        },
+        cutout: '65%'
+      }
+    });
+  }
+  {% endif %}
 });
 </script>
-{% endif %}
 {% endblock %}

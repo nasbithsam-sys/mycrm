@@ -399,26 +399,37 @@ def leads():
     return render_template("leads.html", leads=leads_list, departments=DEPARTMENTS)
 
 # ---------------------------
-# Leads (Admin View & Edit)
+# Leads (Admin + Processor)
 # ---------------------------
 @app.route("/view_leads")
 @login_required
 @processor_or_admin_required
 def view_leads():
-    status_filter = request.args.get('status', 'all')
-    department_filter = request.args.get('department', 'all')
+    status_filter = request.args.get("status", "all")
+    department_filter = request.args.get("department", "all")
 
-    query = Lead.query
-    if status_filter != 'all':
+    # ✅ Admin & Processor can see all leads (no restrictions)
+    query = Lead.query.order_by(Lead.created_at.desc())
+
+    # ✅ Apply filters if selected
+    if status_filter != "all":
         query = query.filter(Lead.status == status_filter)
-    else:
-        active_statuses = ["Pending Outreach", "Texted / Call Done", "In Progress"]
-        query = query.filter(Lead.status.in_(active_statuses))
-    if department_filter != 'all':
+    if department_filter != "all":
         query = query.filter(Lead.department == department_filter)
 
+    # ✅ Fetch leads and distinct values for filters
     leads_data = query.all()
-    return render_template("view_leads.html", leads=leads_data, departments=DEPARTMENTS)
+    all_departments = db.session.query(Lead.department).distinct().all()
+    all_statuses = db.session.query(Lead.status).distinct().all()
+
+    return render_template(
+        "view_leads.html",
+        leads=leads_data,
+        departments=[d[0] for d in all_departments],
+        statuses=[s[0] for s in all_statuses],
+        is_admin=(current_user.role == "admin"),
+        is_processor=(current_user.role == "processor"),
+    )
 
 @app.route("/edit_lead/<int:lead_id>", methods=["GET", "POST"])
 @login_required

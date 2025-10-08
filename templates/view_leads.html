@@ -7,7 +7,7 @@
     <div class="col">
       <h1 class="page-title">All Leads</h1>
       <div class="text-muted mt-1">
-        Manage all active leads 
+        Manage all active leads
         {% if current_user.role == 'admin' %}
           (Admin Access)
         {% elif current_user.role == 'processor' %}
@@ -15,68 +15,53 @@
         {% endif %}
       </div>
     </div>
+
     <div class="col-auto">
       <div class="btn-list">
-
-        <!-- ✅ Export Dropdown — Admin Only -->
+        <!-- ✅ Export only for Admin -->
         {% if current_user.role == 'admin' %}
         <div class="dropdown">
           <button class="btn btn-outline-success dropdown-toggle" data-bs-toggle="dropdown">
-            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-download" width="16" height="16"
-                 viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round"
-                 stroke-linejoin="round">
-              <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="16" height="16" viewBox="0 0 24 24"
+                 stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+              <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
               <path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2 -2v-2" />
               <path d="M7 11l5 5l5 -5" />
-              <path d="M12 4l0 12" />
+              <path d="M12 4v12" />
             </svg>
-            Export Report
+            Export
           </button>
           <div class="dropdown-menu dropdown-menu-end">
-            <a class="dropdown-item" href="{{ url_for('export_closed_leads', type='csv') }}">Export as CSV</a>
-            <a class="dropdown-item" href="{{ url_for('export_closed_leads', type='xlsx') }}">Export as Excel</a>
-            <a class="dropdown-item" href="{{ url_for('export_closed_leads', type='pdf') }}">Export as PDF</a>
+            <a class="dropdown-item" href="{{ url_for('export_closed_leads', type='csv') }}">CSV</a>
+            <a class="dropdown-item" href="{{ url_for('export_closed_leads', type='xlsx') }}">Excel</a>
+            <a class="dropdown-item" href="{{ url_for('export_closed_leads', type='pdf') }}">PDF</a>
           </div>
         </div>
         {% endif %}
-
-        <!-- ➕ Add New Lead -->
-        <a href="{{ url_for('add_lead') }}" class="btn btn-primary">
-          <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="16" height="16" viewBox="0 0 24 24" stroke-width="2"
-               stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-            <path stroke="none" d="M0 0h24v24H0z" fill="none" />
-            <path d="M12 5l0 14" />
-            <path d="M5 12l14 0" />
-          </svg>
-          Add New Lead
-        </a>
       </div>
     </div>
   </div>
 </div>
 
-<!-- 🔽 Filters Section -->
+<!-- 🔽 Filters -->
 <div class="card mb-4">
-  <div class="card-header">
-    <h3 class="card-title">Filters</h3>
-  </div>
+  <div class="card-header"><h3 class="card-title">Filters</h3></div>
   <div class="card-body">
     <form method="GET" action="{{ url_for('view_leads') }}" class="row g-3">
       <div class="col-md-4">
         <label class="form-label">Status</label>
         <select name="status" class="form-select" onchange="this.form.submit()">
-          <option value="all" {% if request.args.get('status', 'all') == 'all' %}selected{% endif %}>All Statuses</option>
-          <option value="Pending Outreach" {% if request.args.get('status') == 'Pending Outreach' %}selected{% endif %}>Pending Outreach</option>
-          <option value="Texted / Call Done" {% if request.args.get('status') == 'Texted / Call Done' %}selected{% endif %}>Texted / Call Done</option>
-          <option value="In Progress" {% if request.args.get('status') == 'In Progress' %}selected{% endif %}>In Progress</option>
-          <option value="Done" {% if request.args.get('status') == 'Done' %}selected{% endif %}>Done (Move to Closed)</option>
+          <option value="all" {% if request.args.get('status', 'all') == 'all' %}selected{% endif %}>All</option>
+          {% for s in statuses %}
+          <option value="{{ s }}" {% if request.args.get('status') == s %}selected{% endif %}>{{ s }}</option>
+          {% endfor %}
         </select>
       </div>
 
       <div class="col-md-4">
         <label class="form-label">Department</label>
         <select name="department" class="form-select" onchange="this.form.submit()">
-          <option value="all" {% if request.args.get('department', 'all') == 'all' %}selected{% endif %}>All Departments</option>
+          <option value="all" {% if request.args.get('department', 'all') == 'all' %}selected{% endif %}>All</option>
           {% for dept in departments %}
           <option value="{{ dept }}" {% if request.args.get('department') == dept %}selected{% endif %}>{{ dept }}</option>
           {% endfor %}
@@ -96,7 +81,7 @@
 <!-- 📋 Leads Table -->
 <div class="card">
   <div class="card-header">
-    <h3 class="card-title">All Active Leads</h3>
+    <h3 class="card-title">All Leads</h3>
     <div class="card-actions">
       <div class="text-muted">Showing {{ leads|length }} lead{% if leads|length != 1 %}s{% endif %}</div>
     </div>
@@ -122,31 +107,29 @@
         <tbody>
           {% for lead in leads %}
           <tr>
-            <td><span class="text-muted">#{{ lead.id }}</span></td>
+            <td>#{{ lead.id }}</td>
             <td><strong>{{ lead.customer_name }}</strong></td>
             <td>{{ lead.customer_number }}</td>
             <td><span class="badge bg-primary-lt">{{ lead.department }}</span></td>
             <td>{{ lead.added_by }}</td>
             <td class="text-muted small">{{ lead.created_at.strftime('%b %d, %Y') if lead.created_at else 'N/A' }}</td>
 
-            <!-- ✅ Status -->
+            <!-- ✅ Editable Status for Admin & Processor -->
             <td>
               {% if current_user.role in ['admin', 'processor'] %}
               <form method="POST" action="{{ url_for('update_status', lead_id=lead.id) }}">
                 <select name="status" class="form-select form-select-sm" onchange="this.form.submit()">
-                  <option value="Pending Outreach" {% if lead.status == "Pending Outreach" %}selected{% endif %}>Pending Outreach</option>
-                  <option value="Texted / Call Done" {% if lead.status == "Texted / Call Done" %}selected{% endif %}>Texted / Call Done</option>
-                  <option value="In Progress" {% if lead.status == "In Progress" %}selected{% endif %}>In Progress</option>
-                  <option value="Done" {% if lead.status == "Done" %}selected{% endif %}>Done (Move)</option>
+                  {% for s in statuses %}
+                    <option value="{{ s }}" {% if lead.status == s %}selected{% endif %}>{{ s }}</option>
+                  {% endfor %}
                 </select>
-                <input type="hidden" name="origin" value="all_leads">
               </form>
               {% else %}
               <span class="badge bg-secondary-lt">{{ lead.status }}</span>
               {% endif %}
             </td>
 
-            <!-- ✅ Cloudinary Attachment -->
+            <!-- 📎 Attachment -->
             <td>
               {% if lead.attachment_filename %}
                 <a href="{{ lead.attachment_filename }}" target="_blank" class="text-primary">View</a>
@@ -155,7 +138,7 @@
               {% endif %}
             </td>
 
-            <!-- ✅ Actions -->
+            <!-- ⚙️ Actions -->
             <td>
               <div class="btn-group">
                 <a href="#" class="btn btn-sm btn-outline-info" data-bs-toggle="modal" data-bs-target="#viewLead{{ lead.id }}">View</a>
@@ -184,9 +167,7 @@
                   <p><strong>Added By:</strong> {{ lead.added_by }}</p>
                   <p><strong>Date:</strong> {{ lead.created_at.strftime('%b %d, %Y %H:%M') if lead.created_at else 'N/A' }}</p>
                   {% if lead.attachment_filename %}
-                    <p><strong>Attachment:</strong>
-                      <a href="{{ lead.attachment_filename }}" target="_blank">Open File</a>
-                    </p>
+                    <p><strong>Attachment:</strong> <a href="{{ lead.attachment_filename }}" target="_blank">Open File</a></p>
                   {% endif %}
                 </div>
                 <div class="modal-footer">
@@ -200,9 +181,9 @@
       </table>
     </div>
     {% else %}
-    <div class="empty text-center">
+    <div class="empty text-center py-5">
       <p class="empty-title">No leads found</p>
-      <p class="empty-subtitle text-muted">No active leads available.</p>
+      <p class="empty-subtitle text-muted">No leads available at this time.</p>
     </div>
     {% endif %}
   </div>
