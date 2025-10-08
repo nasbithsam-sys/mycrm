@@ -7,11 +7,15 @@
   <div class="row align-items-center">
     <div class="col">
       <h1 class="page-title">All Leads</h1>
-      <div class="text-muted mt-1">Manage all active leads (Admin Only)</div>
+      <div class="text-muted mt-1">
+        Manage all active leads 
+        {% if current_user.role == 'admin' %}(Admin Access){% elif current_user.role == 'processor' %}(Processor Access){% endif %}
+      </div>
     </div>
     <div class="col-auto">
       <div class="btn-list">
-        <!-- ✅ Export Dropdown -->
+        <!-- ✅ Export Dropdown — Admin Only -->
+        {% if current_user.role == 'admin' %}
         <div class="dropdown">
           <button class="btn btn-outline-success dropdown-toggle" data-bs-toggle="dropdown">
             <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-download" width="16" height="16"
@@ -30,6 +34,7 @@
             <a class="dropdown-item" href="{{ url_for('export_closed_leads', type='pdf') }}">Export as PDF</a>
           </div>
         </div>
+        {% endif %}
 
         <!-- ➕ Add New Lead -->
         <a href="{{ url_for('add_lead') }}" class="btn btn-primary">
@@ -122,7 +127,8 @@
             <td>{{ lead.created_at.strftime('%b %d, %Y') if lead.created_at else 'N/A' }}</td>
             
             <td>
-              <!-- Admin Dropdown -->
+              <!-- Admin or Processor Status Update -->
+              {% if current_user.role in ['admin', 'processor'] %}
               <form method="POST" action="{{ url_for('update_status', lead_id=lead.id) }}">
                 <select name="status" class="form-select form-select-sm" onchange="this.form.submit()">
                   <option value="Pending Outreach" {% if lead.status == "Pending Outreach" %}selected{% endif %}>Pending Outreach</option>
@@ -132,18 +138,9 @@
                 </select>
                 <input type="hidden" name="origin" value="all_leads">
               </form>
-
-              <div class="mt-1">
-                {% if lead.status == "Pending Outreach" %}
-                  <span class="badge bg-info-lt">Pending Outreach</span>
-                {% elif lead.status == "Texted / Call Done" %}
-                  <span class="badge bg-warning-lt">Texted / Call Done</span>
-                {% elif lead.status == "In Progress" %}
-                  <span class="badge bg-primary-lt">In Progress</span>
-                {% elif lead.status == "Done" %}
-                  <span class="badge bg-success-lt">Done</span>
-                {% endif %}
-              </div>
+              {% else %}
+              <span class="badge bg-secondary-lt">{{ lead.status }}</span>
+              {% endif %}
             </td>
 
             <td>
@@ -156,9 +153,11 @@
 
             <td>
               <a href="#" class="btn btn-sm btn-outline-info" data-bs-toggle="modal" data-bs-target="#viewLead{{ lead.id }}">View</a>
+              {% if current_user.role == 'admin' %}
               <form action="{{ url_for('delete_lead', lead_id=lead.id) }}" method="POST" style="display:inline;">
                 <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Delete lead #{{ lead.id }}?');">Delete</button>
               </form>
+              {% endif %}
             </td>
           </tr>
 

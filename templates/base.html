@@ -24,6 +24,8 @@
           </h1>
           <div class="navbar-nav navbar-collapse" id="sidebar-menu">
             <ul class="navbar-nav pt-lg-3">
+              
+              <!-- Dashboard -->
               <li class="nav-item">
                 <a class="nav-link" href="{{ url_for('dashboard') }}">
                   <span class="nav-link-icon d-md-none d-lg-inline-block">
@@ -37,6 +39,8 @@
                   <span class="nav-link-title">Dashboard</span>
                 </a>
               </li>
+
+              <!-- Add Lead -->
               <li class="nav-item">
                 <a class="nav-link" href="{{ url_for('add_lead') }}">
                   <span class="nav-link-icon d-md-none d-lg-inline-block">
@@ -49,6 +53,8 @@
                   <span class="nav-link-title">Add Lead</span>
                 </a>
               </li>
+
+              <!-- My Leads -->
               <li class="nav-item">
                 <a class="nav-link" href="{{ url_for('leads') }}">
                   <span class="nav-link-icon d-md-none d-lg-inline-block">
@@ -63,7 +69,9 @@
                   <span class="nav-link-title">My Leads</span>
                 </a>
               </li>
-              {% if current_user.is_authenticated and current_user.role == 'admin' %}
+
+              <!-- All Leads -->
+              {% if current_user.is_authenticated and current_user.role in ['admin', 'processor'] %}
               <li class="nav-item">
                 <a class="nav-link" href="{{ url_for('view_leads') }}">
                   <span class="nav-link-icon d-md-none d-lg-inline-block">
@@ -76,6 +84,10 @@
                   <span class="nav-link-title">All Leads</span>
                 </a>
               </li>
+              {% endif %}
+
+              <!-- Admin-only Links -->
+              {% if current_user.is_authenticated and current_user.role == 'admin' %}
               <li class="nav-item">
                 <a class="nav-link" href="{{ url_for('users') }}">
                   <span class="nav-link-icon d-md-none d-lg-inline-block">
@@ -117,6 +129,7 @@
                 </a>
               </li>
               {% endif %}
+
             </ul>
           </div>
         </div>
@@ -162,36 +175,14 @@
                     <div class="d-flex">
                       <div>
                         {% if category == 'success' %}
-                          <svg xmlns="http://www.w3.org/2000/svg" class="icon alert-icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                            <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-                            <path d="M5 12l5 5l10 -10" />
-                          </svg>
+                          ✅
                         {% elif category == 'warning' %}
-                          <svg xmlns="http://www.w3.org/2000/svg" class="icon alert-icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                            <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-                            <path d="M12 9v4" />
-                            <path d="M10.363 3.591l-8.106 13.534a1.914 1.914 0 0 0 1.636 2.871h16.214a1.914 1.914 0 0 0 1.636 -2.87l-8.106 -13.536a1.914 1.914 0 0 0 -3.274 0z" />
-                            <path d="M12 16h.01" />
-                          </svg>
+                          ⚠️
                         {% elif category == 'danger' or category == 'error' %}
-                          <svg xmlns="http://www.w3.org/2000/svg" class="icon alert-icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                            <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-                            <path d="M12 12m-9 0a9 9 0 1 0 18 0a9 9 0 1 0 -18 0" />
-                            <path d="M12 9v4" />
-                            <path d="M12 16v.01" />
-                          </svg>
-                        {% else %}
-                          <svg xmlns="http://www.w3.org/2000/svg" class="icon alert-icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                            <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-                            <path d="M12 9v4" />
-                            <path d="M10.363 3.591l-8.106 13.534a1.914 1.914 0 0 0 1.636 2.871h16.214a1.914 1.914 0 0 0 1.636 -2.87l-8.106 -13.536a1.914 1.914 0 0 0 -3.274 0z" />
-                            <path d="M12 16h.01" />
-                          </svg>
+                          ❌
                         {% endif %}
                       </div>
-                      <div>
-                        {{ message }}
-                      </div>
+                      <div>{{ message }}</div>
                     </div>
                     <a class="btn-close" data-bs-dismiss="alert" aria-label="close"></a>
                   </div>

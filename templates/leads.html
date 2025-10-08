@@ -125,8 +125,8 @@
                   View
                 </a>
 
-                <!-- Admin Dropdown -->
-                {% if current_user.role == "admin" %}
+                <!-- Admin or Processor can update status -->
+                {% if current_user.role in ["admin", "processor"] %}
                   <form action="{{ url_for('update_status', lead_id=lead.id) }}" method="POST" style="display:inline;">
                     <select name="status" class="form-select form-select-sm mt-1" onchange="this.form.submit();">
                       <option value="New Lead" {% if lead.status == "New Lead" %}selected{% endif %}>New Lead</option>
@@ -136,7 +136,7 @@
                     <input type="hidden" name="origin" value="my_leads">
                   </form>
                 {% elif current_user.username == lead.added_by %}
-                  <!-- Edit Button (Only for user's own Issue in Lead) -->
+                  <!-- Edit Button (Only for user's own leads) -->
                   <a href="{{ url_for('edit_lead', lead_id=lead.id) }}" class="btn btn-sm btn-warning mt-1">
                     Edit
                   </a>

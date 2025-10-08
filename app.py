@@ -114,11 +114,11 @@ def normalize_phone(num: str) -> str:
     """Return the phone number exactly as entered (no formatting)."""
     return num.strip()
 
-def admin_required(view):
+def processor_or_admin_required(view):
     @wraps(view)
     def wrapped(*args, **kwargs):
-        if not current_user.is_authenticated or current_user.role != "admin":
-            flash("❌ Access denied. Admins only.", "danger")
+        if not current_user.is_authenticated or current_user.role not in ["admin", "processor"]:
+            flash("❌ Access denied.", "danger")
             return redirect(url_for("dashboard"))
         return view(*args, **kwargs)
     return wrapped
@@ -130,7 +130,7 @@ class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(100), unique=True, nullable=False)
     password = db.Column(db.String(200), nullable=False)
-    role = db.Column(db.String(20), default="user")  # admin / user
+    role = db.Column(db.String(20), default="user")  # admin / user / processor
     otp_secret = db.Column(db.String(32), nullable=True)  # per-user TOTP secret
     otp_verified = db.Column(db.Boolean, default=False)   # per-login verified flag
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
@@ -393,7 +393,7 @@ def leads():
 # ---------------------------
 @app.route("/view_leads")
 @login_required
-@admin_required
+@processor_or_admin_required
 def view_leads():
     status_filter = request.args.get('status', 'all')
     department_filter = request.args.get('department', 'all')
@@ -522,7 +522,7 @@ def resolve_lead(lead_id):
 def update_status(lead_id):
     lead = Lead.query.get_or_404(lead_id)
 
-    if current_user.role != "admin":
+    if current_user.role not in ["admin", "processor"]:
         flash("⚠️ You are not allowed to update this lead.", "danger")
         return redirect(request.referrer or url_for("dashboard"))
 
@@ -623,6 +623,9 @@ def closed_leads():
 def dashboard():
     today = date.today()
 
+    # ---------------------------
+    # Admin Dashboard
+    # ---------------------------
     if current_user.role == "admin":
         total_leads = Lead.query.count()
         my_leads = Lead.query.filter_by(user_id=current_user.id).count()
@@ -642,6 +645,25 @@ def dashboard():
             now=datetime.now(),
             is_admin=True
         )
+
+    # ---------------------------
+    # Processor Dashboard
+    # ---------------------------
+    elif current_user.role == "processor":
+        my_leads = Lead.query.filter_by(user_id=current_user.id).count()
+        new_today = Lead.query.filter(cast(Lead.created_at, Date) == today).count()
+
+        return render_template(
+            "dashboard.html",
+            my_leads=my_leads,
+            new_today=new_today,
+            now=datetime.now(),
+            is_processor=True
+        )
+
+    # ---------------------------
+    # User Dashboard
+    # ---------------------------
     else:
         today_leads = Lead.query.filter(
             Lead.user_id == current_user.id,
