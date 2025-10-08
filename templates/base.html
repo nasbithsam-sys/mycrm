@@ -17,14 +17,13 @@
 
     <!-- ✅ Custom Styles -->
     <style>
-      /* Highlight active sidebar item */
+      /* Sidebar active link highlight */
       .nav-item.active > .nav-link {
         background-color: rgba(255, 255, 255, 0.1);
         border-radius: 6px;
         transition: 0.2s ease;
       }
 
-      /* Sidebar scrollable layout */
       .navbar-vertical {
         position: sticky;
         top: 0;
@@ -32,14 +31,64 @@
         overflow-y: auto;
       }
 
-      /* Optional hover effect */
       .nav-item > .nav-link:hover {
         background-color: rgba(255, 255, 255, 0.08);
       }
 
-      /* Fade-out transition for flash messages */
+      /* Flash fade animation */
       .alert {
         transition: opacity 0.5s ease-out;
+      }
+
+      /* ===================================================
+         🔵 Badge-style dropdown (like ND General badge)
+         =================================================== */
+      .status-dropdown {
+        background-color: var(--tblr-blue-lt);
+        color: var(--tblr-blue);
+        border: 1px solid var(--tblr-blue);
+        border-radius: 0.375rem;
+        padding: 0.25rem 0.6rem;
+        font-size: 0.85rem;
+        font-weight: 600;
+        width: auto;
+        cursor: pointer;
+        display: inline-block;
+        appearance: none;
+        transition: all 0.15s ease-in-out;
+      }
+
+      /* Fix: dropdown list stays white */
+      .status-dropdown option {
+        background-color: #fff;
+        color: #000;
+      }
+
+      .status-dropdown:hover,
+      .status-dropdown:focus {
+        background-color: var(--tblr-blue);
+        color: #fff;
+        outline: none;
+        box-shadow: none;
+      }
+
+      /* Optional variants for status colors */
+      .status-blue  { background-color: var(--tblr-blue-lt); color: var(--tblr-blue); }
+      .status-red   { background-color: var(--tblr-red-lt);  color: var(--tblr-red); }
+      .status-green { background-color: var(--tblr-green-lt); color: var(--tblr-green); }
+      .status-gray  { background-color: var(--tblr-gray-200); color: var(--tblr-gray-700); }
+
+      /* Remove default browser arrow */
+      .status-dropdown::-ms-expand {
+        display: none;
+      }
+      .status-dropdown {
+        background-image: none !important;
+      }
+
+      /* Smooth page transitions */
+      body {
+        background-color: var(--tblr-body-bg);
       }
     </style>
   </head>
@@ -50,146 +99,76 @@
       <!-- ================= Sidebar ================= -->
       <aside class="navbar navbar-vertical navbar-expand-lg navbar-dark bg-dark">
         <div class="container-fluid">
-
-          <!-- Brand -->
           <h1 class="navbar-brand navbar-brand-autodark">
             <a href="{{ url_for('dashboard') }}" class="text-white text-decoration-none">
               AccBoost CRM
             </a>
-            {% if current_user.is_authenticated %}
-              <div class="text-muted small mt-1 ms-1">
-                {{ current_user.role|title }} Panel
-              </div>
-            {% endif %}
           </h1>
 
           <div class="navbar-nav navbar-collapse" id="sidebar-menu">
             <ul class="navbar-nav pt-lg-3">
 
-              <!-- ================= Dashboard ================= -->
+              <!-- Dashboard -->
               <li class="nav-item {% if request.endpoint == 'dashboard' %}active{% endif %}">
                 <a class="nav-link" href="{{ url_for('dashboard') }}">
                   <span class="nav-link-icon d-md-none d-lg-inline-block">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24"
-                         viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none"
-                         stroke-linecap="round" stroke-linejoin="round">
-                      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
-                      <path d="M5 12l-2 0l9 -9l9 9l-2 0" />
-                      <path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-7" />
-                      <path d="M9 21v-6a2 2 0 0 1 2 -2h2a2 2 0 0 1 2 2v6" />
-                    </svg>
+                    <i class="ti ti-home"></i>
                   </span>
                   <span class="nav-link-title">Dashboard</span>
                 </a>
               </li>
 
-              <!-- ================= Add Lead (Hidden for Processor) ================= -->
+              <!-- Add Lead (Hidden for Processor) -->
               {% if current_user.is_authenticated and current_user.role != 'processor' %}
               <li class="nav-item {% if request.endpoint == 'add_lead' %}active{% endif %}">
                 <a class="nav-link" href="{{ url_for('add_lead') }}">
-                  <span class="nav-link-icon d-md-none d-lg-inline-block">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24"
-                         viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"
-                         fill="none" stroke-linecap="round" stroke-linejoin="round">
-                      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
-                      <path d="M12 5v14" />
-                      <path d="M5 12h14" />
-                    </svg>
-                  </span>
+                  <span class="nav-link-icon d-md-none d-lg-inline-block"><i class="ti ti-plus"></i></span>
                   <span class="nav-link-title">Add Lead</span>
                 </a>
               </li>
               {% endif %}
 
-              <!-- ================= My Leads ================= -->
+              <!-- My Leads -->
               <li class="nav-item {% if request.endpoint == 'leads' %}active{% endif %}">
                 <a class="nav-link" href="{{ url_for('leads') }}">
-                  <span class="nav-link-icon d-md-none d-lg-inline-block">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24"
-                         viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"
-                         fill="none" stroke-linecap="round" stroke-linejoin="round">
-                      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
-                      <path d="M9 5h-2a2 2 0 0 0 -2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-12a2 2 0 0 0 -2 -2h-2" />
-                      <path d="M9 5a2 2 0 0 1 2 -2h2a2 2 0 0 1 2 2v0a2 2 0 0 1 -2 2h-2a2 2 0 0 1 -2 -2z" />
-                      <path d="M9 12h6" />
-                      <path d="M9 16h6" />
-                    </svg>
-                  </span>
+                  <span class="nav-link-icon d-md-none d-lg-inline-block"><i class="ti ti-list-details"></i></span>
                   <span class="nav-link-title">My Leads</span>
                 </a>
               </li>
 
-              <!-- ================= All Leads (Admin + Processor) ================= -->
+              <!-- All Leads (Admin + Processor) -->
               {% if current_user.is_authenticated and current_user.role in ['admin', 'processor'] %}
               <li class="nav-item {% if request.endpoint == 'view_leads' %}active{% endif %}">
                 <a class="nav-link" href="{{ url_for('view_leads') }}">
-                  <span class="nav-link-icon d-md-none d-lg-inline-block">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24"
-                         viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"
-                         fill="none" stroke-linecap="round" stroke-linejoin="round">
-                      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
-                      <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" />
-                      <path d="M21 12c-2.4 4 -5.4 6 -9 6c-3.6 0 -6.6 -2 -9 -6c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6" />
-                    </svg>
-                  </span>
+                  <span class="nav-link-icon d-md-none d-lg-inline-block"><i class="ti ti-database"></i></span>
                   <span class="nav-link-title">All Leads</span>
                 </a>
               </li>
               {% endif %}
 
-              <!-- ================= Admin-Only Section ================= -->
+              <!-- Admin Section -->
               {% if current_user.is_authenticated and current_user.role == 'admin' %}
-
               <li class="nav-item {% if request.endpoint == 'users' %}active{% endif %}">
                 <a class="nav-link" href="{{ url_for('users') }}">
-                  <span class="nav-link-icon d-md-none d-lg-inline-block">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24"
-                         viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"
-                         fill="none" stroke-linecap="round" stroke-linejoin="round">
-                      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
-                      <path d="M9 7m-4 0a4 4 0 1 0 8 0a4 4 0 1 0 -8 0" />
-                      <path d="M3 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" />
-                      <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-                      <path d="M21 21v-2a4 4 0 0 0 -3 -3.85" />
-                    </svg>
-                  </span>
+                  <span class="nav-link-icon d-md-none d-lg-inline-block"><i class="ti ti-users"></i></span>
                   <span class="nav-link-title">Users</span>
                 </a>
               </li>
 
               <li class="nav-item {% if request.endpoint == 'analytics' %}active{% endif %}">
                 <a class="nav-link" href="{{ url_for('analytics') }}">
-                  <span class="nav-link-icon d-md-none d-lg-inline-block">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24"
-                         viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"
-                         fill="none" stroke-linecap="round" stroke-linejoin="round">
-                      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
-                      <path d="M3 12m0 1a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v6a1 1 0 0 1 -1 1h-4a1 1 0 0 1 -1 -1z" />
-                      <path d="M9 8m0 1a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v10a1 1 0 0 1 -1 1h-4a1 1 0 0 1 -1 -1z" />
-                      <path d="M15 4m0 1a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v14a1 1 0 0 1 -1 1h-4a1 1 0 0 1 -1 -1z" />
-                      <path d="M4 20l14 0" />
-                    </svg>
-                  </span>
+                  <span class="nav-link-icon d-md-none d-lg-inline-block"><i class="ti ti-chart-bar"></i></span>
                   <span class="nav-link-title">Analytics</span>
                 </a>
               </li>
 
               <li class="nav-item {% if request.endpoint == 'closed_leads' %}active{% endif %}">
                 <a class="nav-link" href="{{ url_for('closed_leads') }}">
-                  <span class="nav-link-icon d-md-none d-lg-inline-block">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24"
-                         viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"
-                         fill="none" stroke-linecap="round" stroke-linejoin="round">
-                      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
-                      <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" />
-                      <path d="M21 12c-2.4 4 -5.4 6 -9 6c-3.6 0 -6.6 -2 -9 -6c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6" />
-                    </svg>
-                  </span>
+                  <span class="nav-link-icon d-md-none d-lg-inline-block"><i class="ti ti-checklist"></i></span>
                   <span class="nav-link-title">Closed Leads</span>
                 </a>
               </li>
               {% endif %}
-
             </ul>
           </div>
         </div>
@@ -223,7 +202,7 @@
               </div>
               {% else %}
               <a href="{{ url_for('login') }}" class="btn btn-outline-primary ms-2">Login</a>
-              <a href="{{ url_for('register') }}" class="btn btn-primary ms-2">Register</a>
+              {# Register is admin-only; don’t show when logged out #}
               {% endif %}
             </div>
           </div>
@@ -248,7 +227,7 @@
               {% endif %}
             {% endwith %}
 
-            <!-- Page-Specific Content -->
+            <!-- Page Content -->
             {% block content %}{% endblock %}
           </div>
         </div>
@@ -258,7 +237,7 @@
     <!-- ================= JS ================= -->
     <script src="https://cdn.jsdelivr.net/npm/@tabler/core@latest/dist/js/tabler.min.js" defer></script>
 
-    <!-- Auto-dismiss alerts after 4 seconds -->
+    <!-- Auto-dismiss alerts -->
     <script>
       setTimeout(() => {
         document.querySelectorAll('.alert').forEach(el => {

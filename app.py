@@ -19,10 +19,14 @@ load_dotenv()  # ✅ This loads .env file automatically
 import cloudinary
 import cloudinary.uploader
 
+required = ["CLOUDINARY_CLOUD_NAME", "CLOUDINARY_API_KEY", "CLOUDINARY_API_SECRET"]
+missing = [k for k in required if not os.getenv(k)]
+if missing:
+    raise RuntimeError(f"Missing Cloudinary envs: {', '.join(missing)}")
 cloudinary.config(
-    cloud_name=os.getenv("CLOUDINARY_CLOUD_NAME", "dgj1mf0ca"),
-    api_key=os.getenv("CLOUDINARY_API_KEY", "688872972948856"),
-    api_secret=os.getenv("CLOUDINARY_API_SECRET", "HQF4ljVl-zF4etc9Og0WZiYE1Tw")
+    cloud_name=os.environ["CLOUDINARY_CLOUD_NAME"],
+    api_key=os.environ["CLOUDINARY_API_KEY"],
+    api_secret=os.environ["CLOUDINARY_API_SECRET"],
 )
 
 from flask_login import (
@@ -69,23 +73,13 @@ app.config['UPLOAD_FOLDER'] = 'uploads'
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB
 app.config['ALLOWED_EXTENSIONS'] = {'png', 'jpg', 'jpeg', 'gif', 'pdf', 'doc', 'docx'}
 
-# ---------------------------
-# SQLAlchemy Engine (Render-safe)
-# ---------------------------
-from sqlalchemy import create_engine
-from sqlalchemy.orm import scoped_session, sessionmaker
-
-# ✅ Connection-stable engine (avoids Render idle disconnects)
-engine = create_engine(
-    app.config["SQLALCHEMY_DATABASE_URI"],
-    pool_pre_ping=True,
-    pool_size=5,
-    max_overflow=2
-)
-
-db = SQLAlchemy()
-db.session = scoped_session(sessionmaker(bind=engine))
-db.init_app(app)
+# SQLAlchemy (Render-safe)
+app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
+    "pool_pre_ping": True,
+    "pool_size": 5,
+    "max_overflow": 2,
+}
+db = SQLAlchemy(app)
 
 # ---------------------------
 # Login Manager
@@ -111,8 +105,8 @@ def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in app.config['ALLOWED_EXTENSIONS']
 
 def normalize_phone(num: str) -> str:
-    """Return the phone number exactly as entered (no formatting)."""
-    return num.strip()
+    """Preserve formatting but keep DB-safe length (VARCHAR(20))."""
+    return num.strip()[:20]
 
 def processor_or_admin_required(view):
     @wraps(view)
@@ -389,14 +383,33 @@ def leads():
     # ----------------------------
     initial_statuses = ["New Lead", "Issue in Lead", "Updated"]
 
-    if current_user.role == "admin":
-        leads_list = Lead.query.filter(Lead.status.in_(initial_statuses)).all()
+    if current_user.role in ("admin", "processor"):
+       leads_list = (
+           Lead.query.filter(Lead.status.in_(["New Lead", "Issue in Lead"]))
+           .order_by(Lead.status.desc(), Lead.created_at.desc())
+           .all()
+        )
     else:
-        leads_list = Lead.query.filter_by(user_id=current_user.id).filter(
-            Lead.status.in_(initial_statuses)
-        ).all()
+       leads_list = (
+           Lead.query.filter_by(user_id=current_user.id)
+           .filter(Lead.status.in_(["New Lead", "Issue in Lead", "Updated"]))
+           .order_by(Lead.created_at.desc())
+           .all()
+        )
 
-    return render_template("leads.html", leads=leads_list, departments=DEPARTMENTS)
+
+    STATUSES_MY_LEADS = ["New Lead", "Issue in Lead", "Updated", "Done"]
+    STATUSES_PIPELINE = ["Pending Outreach", "Texted / Call Done", "In Progress", "Done"]
+
+    return render_template(
+        "leads.html",
+         leads=leads_list,
+         departments=DEPARTMENTS,
+         statuses_my_leads=STATUSES_MY_LEADS,
+         statuses_pipeline=STATUSES_PIPELINE,
+         triage_mode=(current_user.role in ["admin", "processor"]),
+         can_add=(current_user.role != "processor")
+)
 
 # ---------------------------
 # Leads (Admin + Processor)
@@ -405,30 +418,31 @@ def leads():
 @login_required
 @processor_or_admin_required
 def view_leads():
-    status_filter = request.args.get("status", "all")
-    department_filter = request.args.get("department", "all")
+    status_filter = request.args.get('status', 'all')
+    department_filter = request.args.get('department', 'all')
 
-    # ✅ Admin & Processor can see all leads (no restrictions)
-    query = Lead.query.order_by(Lead.created_at.desc())
+    query = Lead.query
 
-    # ✅ Apply filters if selected
-    if status_filter != "all":
+    # Default visible statuses
+    if status_filter != 'all':
         query = query.filter(Lead.status == status_filter)
-    if department_filter != "all":
+    else:
+        active_statuses = ["Pending Outreach", "Texted / Call Done", "In Progress"]
+        query = query.filter(Lead.status.in_(active_statuses))
+
+    if department_filter != 'all':
         query = query.filter(Lead.department == department_filter)
 
-    # ✅ Fetch leads and distinct values for filters
     leads_data = query.all()
-    all_departments = db.session.query(Lead.department).distinct().all()
-    all_statuses = db.session.query(Lead.status).distinct().all()
+
+    # ✅ Add this line
+    STATUSES_PIPELINE = ["Pending Outreach", "Texted / Call Done", "In Progress", "Done"]
 
     return render_template(
         "view_leads.html",
         leads=leads_data,
-        departments=[d[0] for d in all_departments],
-        statuses=[s[0] for s in all_statuses],
-        is_admin=(current_user.role == "admin"),
-        is_processor=(current_user.role == "processor"),
+        departments=DEPARTMENTS,
+        statuses_pipeline=STATUSES_PIPELINE   # ✅ Pass it here
     )
 
 @app.route("/edit_lead/<int:lead_id>", methods=["GET", "POST"])
@@ -543,6 +557,7 @@ def resolve_lead(lead_id):
 def update_status(lead_id):
     lead = Lead.query.get_or_404(lead_id)
 
+    # Only Admin or Processor can update lead status
     if current_user.role not in ["admin", "processor"]:
         flash("⚠️ You are not allowed to update this lead.", "danger")
         return redirect(request.referrer or url_for("dashboard"))
@@ -550,6 +565,9 @@ def update_status(lead_id):
     new_status = request.form.get("status", "").strip()
     origin = request.form.get("origin", "").strip()
 
+    # ---------------------------
+    # From "My Leads" Page
+    # ---------------------------
     if origin == "my_leads":
         allowed = {"New Lead", "Issue in Lead", "Updated", "Done"}
         if new_status not in allowed:
@@ -561,15 +579,20 @@ def update_status(lead_id):
             lead.closed_at = None
             lead.closed_by = None
             lead.sub_status = None
+            flash("✅ Lead triaged and moved to All Leads (Pending Outreach).", "success")
         else:
             lead.status = new_status
             lead.closed_at = None
             lead.closed_by = None
             lead.sub_status = None
+            flash(f"✅ Lead status changed to '{new_status}'.", "success")
+
         db.session.commit()
-        flash("✅ Lead status updated.", "success")
         return redirect(url_for("leads"))
 
+    # ---------------------------
+    # From "All Leads" Page
+    # ---------------------------
     if origin == "all_leads":
         allowed = {"Pending Outreach", "Texted / Call Done", "In Progress", "Done"}
         if new_status not in allowed:
@@ -581,17 +604,23 @@ def update_status(lead_id):
             lead.closed_at = datetime.utcnow()
             lead.closed_by = current_user.id
             lead.sub_status = None
+            flash("✅ Lead marked as Done and moved to Closed Leads.", "success")
         else:
             lead.status = new_status
             lead.closed_at = None
             lead.closed_by = None
             lead.sub_status = None
+            flash(f"✅ Lead status updated to '{new_status}'.", "success")
+
         db.session.commit()
-        flash("✅ Lead status updated.", "success")
         return redirect(url_for("view_leads"))
 
-    flash("⚠️ Missing origin. Please update from My Leads or All Leads.", "warning")
+    # ---------------------------
+    # Fallback (if missing origin)
+    # ---------------------------
+    flash("⚠️ Missing origin info. Update from My Leads or All Leads page.", "warning")
     return redirect(request.referrer or url_for("dashboard"))
+
 
 # ---------------------------
 # Closed Leads
@@ -621,8 +650,8 @@ def closed_leads():
     query = Lead.query.options(joinedload(Lead.closed_by_user)).filter_by(status="Done")
 
     start = datetime.strptime(start_date, "%Y-%m-%d")
-    end = datetime.strptime(end_date, "%Y-%m-%d")
-    query = query.filter(Lead.closed_at.between(start, end))
+    end = datetime.strptime(end_date, "%Y-%m-%d") + timedelta(days=1)
+    query = query.filter(Lead.closed_at >= start, Lead.closed_at < end)
 
     closed = query.all()
     total_leads = len(closed)
@@ -643,129 +672,70 @@ def closed_leads():
 @app.route("/dashboard")
 @login_required
 def dashboard():
-    today = date.today()
+    # Show correct dashboard per role
+    now = datetime.now()
 
-    # ---------------------------
-    # 🧭 ADMIN DASHBOARD
-    # ---------------------------
-    if current_user.role == "admin":
+    # --- Admin Dashboard ---
+    if current_user.role == 'admin':
         total_leads = Lead.query.count()
-        my_leads = Lead.query.filter_by(user_id=current_user.id).count()
-        new_today = Lead.query.filter(cast(Lead.created_at, Date) == today).count()
+        my_leads = Lead.query.filter_by(added_by=current_user.username).count()
+        new_today = Lead.query.filter(db.func.date(Lead.created_at) == date.today()).count()
 
-        # Department analytics for chart
-        dept_stats = (
-            db.session.query(Lead.department, db.func.count(Lead.id))
-            .group_by(Lead.department)
-            .all()
-        )
-        dept_labels = [d[0] for d in dept_stats]
-        dept_counts = [d[1] for d in dept_stats]
+        # Chart data
+        dept_labels = [dept for dept in DEPARTMENTS]
+        dept_counts = [Lead.query.filter_by(department=dept).count() for dept in DEPARTMENTS]
 
         return render_template(
             "dashboard.html",
+            now=now,
+            is_admin=True,
             total_leads=total_leads,
             my_leads=my_leads,
             new_today=new_today,
             dept_labels=dept_labels,
-            dept_counts=dept_counts,
-            now=datetime.now(),
-            is_admin=True,
-            is_processor=False
+            dept_counts=dept_counts
         )
 
-    # ---------------------------
-    # ⚙️ PROCESSOR DASHBOARD
-    # ---------------------------
-    elif current_user.role == "processor":
-        # Only show NEW LEADS
-        leads = (
-            Lead.query.filter_by(status="New Lead")
-            .order_by(Lead.created_at.desc())
-            .all()
-        )
-
+    # --- Processor Dashboard ---
+    elif current_user.role == 'processor':
+        leads = Lead.query.filter(Lead.status.in_(['Pending Outreach', 'Texted / Call Done', 'In Progress'])).all()
         total_new = len(leads)
-        my_leads = Lead.query.filter_by(user_id=current_user.id).count()
-        new_today = (
-            Lead.query.filter(cast(Lead.created_at, Date) == today).count()
-        )
+        my_leads = Lead.query.filter_by(assigned_to=current_user.id).count()
+        new_today = Lead.query.filter(db.func.date(Lead.created_at) == date.today()).count()
 
         return render_template(
             "dashboard_processor.html",
+            now=now,
             leads=leads,
             total_new=total_new,
             my_leads=my_leads,
-            new_today=new_today,
-            now=datetime.now(),
-            is_admin=False,
-            is_processor=True
+            new_today=new_today
         )
 
-    # ---------------------------
-    # 👤 USER DASHBOARD
-    # ---------------------------
+    # --- Standard User Dashboard ---
     else:
-        today_leads = (
-            Lead.query.filter(
-                Lead.user_id == current_user.id,
-                cast(Lead.created_at, Date) == today,
-            ).count()
-        )
-
-        issue_leads = (
-            Lead.query.filter(
-                Lead.user_id == current_user.id, Lead.status == "Issue in Lead"
-            ).count()
-        )
-
-        resolved_today = (
-            Lead.query.filter(
-                Lead.user_id == current_user.id,
-                cast(Lead.created_at, Date) == today,
-                Lead.status.in_(
-                    ["Done", "Texted / Call Done", "Connected", "Completed"]
-                ),
-            ).count()
-        )
-
-        today_leads_list = (
-            Lead.query.filter(
-                Lead.user_id == current_user.id,
-                cast(Lead.created_at, Date) == today,
-            )
-            .order_by(Lead.created_at.desc())
-            .all()
-        )
-
-        issue_leads_list = (
-            Lead.query.filter(
-                Lead.user_id == current_user.id, Lead.status == "Issue in Lead"
-            )
-            .order_by(Lead.created_at.desc())
-            .all()
-        )
-
-        recent_leads = (
-            Lead.query.filter_by(user_id=current_user.id)
-            .order_by(Lead.created_at.desc())
-            .limit(5)
-            .all()
-        )
+        my_leads = Lead.query.filter_by(added_by=current_user.username).all()
+        issue_leads_list = Lead.query.filter_by(status='Issue in Lead', added_by=current_user.username).all()
+        issue_leads = len(issue_leads_list)
+        today_leads = Lead.query.filter(
+            db.func.date(Lead.created_at) == date.today(),
+            Lead.added_by == current_user.username
+        ).count()
+        resolved_today = Lead.query.filter(
+            Lead.status == 'Done',
+            db.func.date(Lead.created_at) == date.today(),
+            Lead.added_by == current_user.username
+        ).count()
 
         return render_template(
             "dashboard.html",
-            today_leads=today_leads,
+            now=now,
             issue_leads=issue_leads,
+            today_leads=today_leads,
             resolved_today=resolved_today,
-            today_leads_list=today_leads_list,
-            issue_leads_list=issue_leads_list,
-            recent_leads=recent_leads,
-            now=datetime.now(),
-            is_admin=False,
-            is_processor=False
+            issue_leads_list=issue_leads_list
         )
-
+    
 # ---------------------------
 # Analytics
 # ---------------------------

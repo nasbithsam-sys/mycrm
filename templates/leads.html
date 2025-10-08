@@ -1,185 +1,153 @@
 {% extends "base.html" %}
-
-{% block title %}My Leads - AccBoost CRM{% endblock %}
+{% block title %}My Leads – AccBoost CRM{% endblock %}
 
 {% block content %}
-<div class="page-header">
+<div class="page-header d-print-none">
   <div class="row align-items-center">
     <div class="col">
-      <h1 class="page-title">My Leads</h1>
-      <div class="text-muted mt-1">Manage your active leads (New, Issue, or Updated)</div>
+      <h2 class="page-title">My Leads</h2>
+      <div class="text-muted mt-1">
+        {% if triage_mode %}
+          Triage queue: newly added leads
+        {% else %}
+          Leads added by you
+        {% endif %}
+      </div>
     </div>
-    <div class="col-auto">
-      <span class="badge bg-primary">Total: {{ leads|length }} active leads</span>
-      <a href="{{ url_for('add_lead') }}" class="btn btn-primary ms-2">
-        <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="16" height="16" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-          <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-          <path d="M12 5v14M5 12h14" />
-        </svg>
-        Add New Lead
+    {% if can_add %}
+    <div class="col-auto ms-auto">
+      <a href="{{ url_for('add_lead') }}" class="btn btn-primary">
+        <i class="ti ti-plus me-1"></i> Add New Lead
       </a>
     </div>
+    {% endif %}
   </div>
 </div>
 
-<!-- Leads Table -->
-<div class="card mt-3">
-  <div class="card-header">
-    <h3 class="card-title">My Active Leads</h3>
+<div class="card shadow-sm">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <h3 class="card-title fw-semibold">
+      {% if triage_mode %}New Leads{% else %}All My Leads{% endif %}
+    </h3>
+    <span class="badge bg-blue-lt text-blue fw-semibold">Showing {{ leads|length }}</span>
   </div>
-  <div class="card-body">
+
+  <div class="card-body border-top">
     {% if leads %}
     <div class="table-responsive">
-      <table class="table table-vcenter table-hover table-striped align-middle">
-        <thead>
+      <table class="table table-vcenter table-hover align-middle">
+        <thead class="table-light">
           <tr>
-            <th>Customer</th>
+            <th>ID</th>
+            <th>Client</th>
+            <th>Contact</th>
             <th>Department</th>
-            <th>Service Context</th>
-            <th>Area</th>
-            <th>Attachment</th>
             <th>Added By</th>
-            <th>Status</th>
             <th>Date</th>
-            <th class="w-1">Actions</th>
+            <th>Status</th>
+            <th class="text-end">Actions</th>
           </tr>
         </thead>
         <tbody>
           {% for lead in leads %}
           <tr>
-            <!-- Customer -->
-            <td>
-              <div class="d-flex align-items-center">
-                <span class="avatar avatar-sm bg-primary-lt me-3">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="20" height="20" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                    <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-                    <path d="M12 7a4 4 0 1 0 0 8a4 4 0 0 0 0 -8z" />
-                    <path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" />
-                  </svg>
-                </span>
-                <div>
-                  <div class="fw-bold">{{ lead.customer_name }}</div>
-                  <div class="text-muted small">{{ lead.customer_number }}</div>
-                </div>
-              </div>
-            </td>
-
-            <td><span class="badge bg-primary-lt">{{ lead.department }}</span></td>
-
-            <!-- Service Context -->
-            <td class="text-truncate" style="max-width: 200px;">
-              <span title="{{ lead.context_service }}">{{ lead.context_service }}</span>
-            </td>
-
-            <!-- Areas -->
-            <td class="text-muted small">
-              <div>Main: {{ lead.main_area or 'N/A' }}</div>
-              {% if lead.second_main_area %}<div>2nd: {{ lead.second_main_area }}</div>{% endif %}
-              <div>Sub: {{ lead.sub_location or 'N/A' }}</div>
-            </td>
-
-            <!-- Attachment -->
-            <td>
-              {% if lead.attachment_filename %}
-                {% if lead.attachment_filename.endswith(('.jpg','.jpeg','.png','.gif')) %}
-                  <a href="{{ lead.attachment_filename }}" target="_blank">
-                    <img src="{{ lead.attachment_filename }}" alt="Attachment" class="rounded shadow-sm" style="width:60px;height:60px;object-fit:cover;">
-                  </a>
-                {% else %}
-                  <a href="{{ lead.attachment_filename }}" target="_blank" class="btn btn-sm btn-outline-info">
-                    View File
-                  </a>
-                {% endif %}
-              {% else %}
-                <span class="text-muted">None</span>
-              {% endif %}
-            </td>
-
+            <td><span class="text-muted">#{{ lead.id }}</span></td>
+            <td class="fw-semibold">{{ lead.customer_name }}</td>
+            <td>{{ lead.customer_number }}</td>
+            <td><span class="badge bg-blue-lt text-blue">{{ lead.department }}</span></td>
             <td>{{ lead.added_by }}</td>
+            <td class="text-muted small">{{ lead.created_at.strftime('%b %d, %Y') if lead.created_at else 'N/A' }}</td>
 
-            <!-- Status -->
+            <!-- STATUS -->
             <td>
-              {% if lead.status == "New Lead" %}
-                <span class="badge bg-blue-lt">{{ lead.status }}</span>
-              {% elif lead.status == "Issue in Lead" %}
-                <span class="badge bg-red-lt">{{ lead.status }}</span>
-              {% elif lead.status == "Updated" %}
-                <span class="badge bg-green-lt">{{ lead.status }}</span>
+              {% set color_map = {
+                'New Lead': 'bg-primary text-white',
+                'Issue in Lead': 'bg-danger text-white',
+                'Updated': 'bg-success text-white',
+                'Done': 'bg-secondary text-white'
+              } %}
+
+              {% if current_user.role in ['admin','processor'] and lead.status not in ['Updated','Done'] %}
+                <form method="POST" action="{{ url_for('update_status', lead_id=lead.id) }}" class="m-0">
+                  <input type="hidden" name="origin" value="my_leads">
+                  <select name="status" class="form-select form-select-sm status-dropdown"
+                          onchange="this.form.submit()">
+                   <option value="New Lead" {% if lead.status == 'New Lead' %}selected{% endif %}>New Lead</option>
+                   <option value="Issue in Lead" {% if lead.status == 'Issue in Lead' %}selected{% endif %}>Issue in Lead</option>
+                   <option value="Done">Done (Move to All Leads)</option>
+                </select>
+                </form>
               {% else %}
-                <span class="badge bg-secondary-lt">{{ lead.status }}</span>
+                <span class="badge {{ color_map.get(lead.status,'bg-light text-dark') }}">{{ lead.status }}</span>
               {% endif %}
             </td>
 
-            <!-- Date -->
-            <td class="text-muted small">
-              {{ lead.created_at.strftime('%b %d, %Y') if lead.created_at else 'N/A' }}
-            </td>
-
-            <!-- Actions -->
-            <td>
-              <div class="btn-group">
-                <!-- View -->
-                <a href="#" class="btn btn-sm btn-outline-info" data-bs-toggle="modal" data-bs-target="#viewLead{{ lead.id }}">View</a>
-
-                <!-- Update or Edit -->
-                {% if current_user.role in ["admin", "processor"] %}
-                  <form action="{{ url_for('update_status', lead_id=lead.id) }}" method="POST" class="d-inline-block">
-                    <select name="status" class="form-select form-select-sm mt-1" onchange="this.form.submit();">
-                      <option value="New Lead" {% if lead.status == "New Lead" %}selected{% endif %}>New Lead</option>
-                      <option value="Issue in Lead" {% if lead.status == "Issue in Lead" %}selected{% endif %}>Issue in Lead</option>
-                      <option value="Done" {% if lead.status == "Done" %}selected{% endif %}>Done (Move)</option>
-                    </select>
-                    <input type="hidden" name="origin" value="my_leads">
-                  </form>
-                {% elif current_user.username == lead.added_by %}
-                  <a href="{{ url_for('edit_lead', lead_id=lead.id) }}" class="btn btn-sm btn-warning mt-1">Edit</a>
-                {% else %}
-                  <span class="text-muted small">View only</span>
+            <!-- ACTIONS -->
+            <td class="text-end">
+              <div class="btn-list flex-nowrap">
+                <a href="#" class="btn btn-sm btn-outline-info" data-bs-toggle="modal" data-bs-target="#viewLead{{ lead.id }}">
+                  <i class="ti ti-eye"></i> View
+                </a>
+                {% if current_user.role == 'admin' or current_user.username == lead.added_by %}
+                  <a href="{{ url_for('edit_lead', lead_id=lead.id) }}" class="btn btn-sm btn-outline-warning">
+                    <i class="ti ti-edit"></i> Edit
+                  </a>
                 {% endif %}
               </div>
             </td>
           </tr>
 
-          <!-- View Modal -->
-          <div class="modal fade" id="viewLead{{ lead.id }}" tabindex="-1">
-            <div class="modal-dialog modal-lg">
+          <!-- MODAL -->
+          <div class="modal modal-blur fade" id="viewLead{{ lead.id }}" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
               <div class="modal-content">
                 <div class="modal-header">
                   <h5 class="modal-title">Lead Details: {{ lead.customer_name }}</h5>
-                  <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                  <p><strong>Customer:</strong> {{ lead.customer_name }} ({{ lead.customer_number }})</p>
-                  <p><strong>Department:</strong> {{ lead.department }}</p>
-                  <p><strong>Service:</strong> {{ lead.context_service }}</p>
-                  <p><strong>Main Area:</strong> {{ lead.main_area }}</p>
-                  <p><strong>Second Main:</strong> {{ lead.second_main_area or '—' }}</p>
-                  <p><strong>Sub Location:</strong> {{ lead.sub_location or '—' }}</p>
-                  <p><strong>Status:</strong> {{ lead.status }}</p>
-                  <p><strong>Added By:</strong> {{ lead.added_by }}</p>
-                  <p><strong>Date:</strong> {{ lead.created_at.strftime('%b %d, %Y %H:%M') if lead.created_at else 'N/A' }}</p>
-                  {% if lead.attachment_filename %}
-                    <p><strong>Attachment:</strong><br>
-                      <a href="{{ lead.attachment_filename }}" target="_blank">Open File</a>
-                    </p>
-                  {% endif %}
+                  <dl class="row">
+                    <dt class="col-sm-4">Contact</dt><dd class="col-sm-8">{{ lead.customer_number }}</dd>
+                    <dt class="col-sm-4">Department</dt><dd class="col-sm-8">{{ lead.department }}</dd>
+                    <dt class="col-sm-4">Service</dt><dd class="col-sm-8">{{ lead.context_service or 'N/A' }}</dd>
+                    <dt class="col-sm-4">Status</dt>
+                    <dd class="col-sm-8">
+                      <span class="badge {{ color_map.get(lead.status,'bg-light text-dark') }}">{{ lead.status }}</span>
+                    </dd>
+                    <dt class="col-sm-4">Added By</dt><dd class="col-sm-8">{{ lead.added_by }}</dd>
+                    <dt class="col-sm-4">Created At</dt>
+                    <dd class="col-sm-8">{{ lead.created_at.strftime('%b %d, %Y %I:%M %p') if lead.created_at else 'N/A' }}</dd>
+                    {% if lead.attachment_filename %}
+                    <dt class="col-sm-4">Attachment</dt>
+                    <dd class="col-sm-8"><a href="{{ lead.attachment_filename }}" target="_blank" class="link-primary">Open File</a></dd>
+                    {% endif %}
+                  </dl>
                 </div>
                 <div class="modal-footer">
-                  <button class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                  <button type="button" class="btn me-auto" data-bs-dismiss="modal">Close</button>
                 </div>
               </div>
             </div>
           </div>
+
           {% endfor %}
         </tbody>
       </table>
     </div>
     {% else %}
-      <div class="empty text-center">
-        <p class="empty-title">No active leads</p>
-        <p class="empty-subtitle text-muted">You haven't added or received any leads yet.</p>
-        <a href="{{ url_for('add_lead') }}" class="btn btn-primary">Add your first lead</a>
+    <div class="empty my-5 text-center">
+      <div class="empty-icon mb-3">
+        <i class="ti ti-inbox fs-1 text-muted"></i>
       </div>
+      <p class="empty-title">No leads yet</p>
+      <p class="empty-subtitle text-muted">
+        {% if triage_mode %}
+          Nothing to triage right now.
+        {% else %}
+          You haven’t added any leads yet.
+        {% endif %}
+      </p>
+    </div>
     {% endif %}
   </div>
 </div>

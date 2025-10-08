@@ -9,9 +9,7 @@
       <div class="text-muted mt-1">
         Manage all active leads
         {% if current_user.role == 'admin' %}
-          (Admin Access)
         {% elif current_user.role == 'processor' %}
-          (Processor Access)
         {% endif %}
       </div>
     </div>
@@ -52,7 +50,7 @@
         <label class="form-label">Status</label>
         <select name="status" class="form-select" onchange="this.form.submit()">
           <option value="all" {% if request.args.get('status', 'all') == 'all' %}selected{% endif %}>All</option>
-          {% for s in statuses %}
+          {% for s in statuses if not (current_user.role == 'processor' and s in ['Archived', 'Deleted']) %}
           <option value="{{ s }}" {% if request.args.get('status') == s %}selected{% endif %}>{{ s }}</option>
           {% endfor %}
         </select>
@@ -118,8 +116,9 @@
             <td>
               {% if current_user.role in ['admin', 'processor'] %}
               <form method="POST" action="{{ url_for('update_status', lead_id=lead.id) }}">
+                <input type="hidden" name="origin" value="all_leads">
                 <select name="status" class="form-select form-select-sm" onchange="this.form.submit()">
-                  {% for s in statuses %}
+                  {% for s in statuses_pipeline %}
                     <option value="{{ s }}" {% if lead.status == s %}selected{% endif %}>{{ s }}</option>
                   {% endfor %}
                 </select>

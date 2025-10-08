@@ -6,35 +6,27 @@
   <div class="row align-items-center">
     <div class="col">
       <h1 class="page-title">Dashboard</h1>
-      <div class="text-muted mt-1">
-        Last updated:
-        <span id="update-time">{{ now.strftime('%H:%M') if now else 'Just now' }}</span>
-      </div>
+      <div class="text-muted mt-1">Last updated: <span id="update-time">{{ now.strftime('%H:%M') if now else 'Just now' }}</span></div>
     </div>
-    {% if current_user.role != 'processor' %}
     <div class="col-auto">
       <div class="btn-list">
+        {% if current_user.role != 'processor' %}
         <a href="{{ url_for('add_lead') }}" class="btn btn-primary">
-          <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24"
-               viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"
-               fill="none" stroke-linecap="round" stroke-linejoin="round">
+          <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
             <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-            <path d="M12 5v14" />
-            <path d="M5 12h14" />
+            <path d="M12 5l0 14" />
+            <path d="M5 12l14 0" />
           </svg>
           Add New Lead
         </a>
+        {% endif %}
       </div>
     </div>
-    {% endif %}
   </div>
 </div>
 
 {% if is_admin %}
-<!-- ========================= -->
-<!-- 🔹 ADMIN DASHBOARD (original unchanged) -->
-<!-- ========================= -->
-
+<!-- Admin KPIs -->
 <div class="row row-deck mb-4">
   <div class="col-sm-6 col-lg-3">
     <div class="card card-sm kpi-card">
@@ -42,8 +34,7 @@
         <div class="row align-items-center">
           <div class="col-auto">
             <span class="bg-primary text-white avatar">
-              <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24"
-                   stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+              <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
                 <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
                 <path d="M9 7m-4 0a4 4 0 1 0 8 0a4 4 0 1 0 -8 0" />
                 <path d="M3 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" />
@@ -61,15 +52,13 @@
       </div>
     </div>
   </div>
-
   <div class="col-sm-6 col-lg-3">
     <div class="card card-sm kpi-card">
       <div class="card-body">
         <div class="row align-items-center">
           <div class="col-auto">
             <span class="bg-success text-white avatar">
-              <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24"
-                   stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+              <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
                 <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
                 <path d="M8 7a4 4 0 1 0 8 0a4 4 0 0 0 -8 0" />
                 <path d="M6 21v-2a4 4 0 0 1 4 -4h4" />
@@ -86,15 +75,13 @@
       </div>
     </div>
   </div>
-
   <div class="col-sm-6 col-lg-3">
     <div class="card card-sm kpi-card">
       <div class="card-body">
         <div class="row align-items-center">
           <div class="col-auto">
             <span class="bg-warning text-white avatar">
-              <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24"
-                   stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+              <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
                 <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
                 <path d="M12 12m-9 0a9 9 0 1 0 18 0a9 9 0 1 0 -18 0" />
                 <path d="M9 12l6 0" />
@@ -111,15 +98,13 @@
       </div>
     </div>
   </div>
-
   <div class="col-sm-6 col-lg-3">
     <div class="card card-sm kpi-card">
       <div class="card-body">
         <div class="row align-items-center">
           <div class="col-auto">
             <span class="bg-info text-white avatar">
-              <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24"
-                   stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+              <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
                 <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
                 <path d="M3 21l18 0" />
                 <path d="M5 21v-14l8 -4v18" />
@@ -142,7 +127,7 @@
   </div>
 </div>
 
-<!-- Chart Section -->
+<!-- Admin chart + table -->
 <div class="row row-deck">
   {% if dept_labels and dept_counts %}
   <div class="col-lg-6">
@@ -157,6 +142,7 @@
       </div>
     </div>
   </div>
+
   <div class="col-lg-6">
     <div class="card">
       <div class="card-header">
@@ -166,7 +152,11 @@
         <div class="table-responsive">
           <table class="table table-vcenter">
             <thead>
-              <tr><th>Department</th><th>Leads</th><th style="width: 40%">Progress</th></tr>
+              <tr>
+                <th>Department</th>
+                <th>Leads</th>
+                <th style="width:40%">Progress</th>
+              </tr>
             </thead>
             <tbody>
               {% for i in range(dept_labels|length) %}
@@ -175,9 +165,7 @@
                 <td><strong>{{ dept_counts[i] }}</strong></td>
                 <td>
                   <div class="progress progress-sm">
-                    <div class="progress-bar"
-                      style="width: {{ (dept_counts[i] / total_leads * 100) if total_leads > 0 else 0 }}%">
-                    </div>
+                    <div class="progress-bar" style="width: {{ (dept_counts[i] / total_leads * 100) if total_leads > 0 else 0 }}%"></div>
                   </div>
                   <div class="small text-muted">
                     {{ "%.1f"|format((dept_counts[i] / total_leads * 100) if total_leads > 0 else 0) }}%
@@ -191,70 +179,137 @@
       </div>
     </div>
   </div>
+  {% else %}
+  <div class="col-12">
+    <div class="card"><div class="card-body text-center py-5">
+      <div class="empty">
+        <p class="empty-title">No data available</p>
+        <p class="empty-subtitle text-muted">Add leads to see analytics.</p>
+      </div>
+    </div></div>
+  </div>
   {% endif %}
 </div>
 
-{% elif is_processor %}
-<!-- ========================= -->
-<!-- 🟢 PROCESSOR DASHBOARD -->
-<!-- ========================= -->
-<div class="row row-deck mb-4">
-  <div class="col-sm-6 col-lg-4">
-    <div class="card card-sm kpi-card">
-      <div class="card-body text-center">
-        <div class="font-weight-medium text-success">MY LEADS</div>
-        <div class="h2 mt-2 mb-0 text-success">{{ my_leads }}</div>
-        <div class="text-muted">Assigned to you</div>
-      </div>
-    </div>
-  </div>
-
-  <div class="col-sm-6 col-lg-4">
-    <div class="card card-sm kpi-card">
-      <div class="card-body text-center">
-        <div class="font-weight-medium text-warning">NEW TODAY</div>
-        <div class="h2 mt-2 mb-0 text-warning">{{ new_today }}</div>
-        <div class="text-muted">Created today</div>
-      </div>
-    </div>
-  </div>
-</div>
-
-<div class="row mt-4">
-  <div class="col-md-6">
-    <a href="{{ url_for('leads') }}" class="card card-sm bg-success text-white action-tile">
-      <div class="card-body text-center p-3">
-        <svg xmlns="http://www.w3.org/2000/svg" class="icon mb-2" width="24" height="24"
-             viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"
-             fill="none" stroke-linecap="round" stroke-linejoin="round">
-          <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-          <path d="M9 6h11M9 12h11M9 18h11M5 6v.01M5 12v.01M5 18v.01" />
-        </svg>
-        <div class="font-weight-medium">My Leads</div>
-      </div>
-    </a>
-  </div>
-  <div class="col-md-6">
-    <a href="{{ url_for('view_leads') }}" class="card card-sm bg-primary text-white action-tile">
-      <div class="card-body text-center p-3">
-        <svg xmlns="http://www.w3.org/2000/svg" class="icon mb-2" width="24" height="24"
-             viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"
-             fill="none" stroke-linecap="round" stroke-linejoin="round">
-          <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-          <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" />
-          <path d="M21 12c-2.4 4 -5.4 6 -9 6s-6.6-2-9-6c2.4-4 5.4-6 9-6s6.6 2 9 6" />
-        </svg>
-        <div class="font-weight-medium">All Leads</div>
-      </div>
-    </a>
-  </div>
-</div>
-
 {% else %}
-<!-- ========================= -->
-<!-- 🔵 USER DASHBOARD (original unchanged) -->
-<!-- ========================= -->
-{{ super() }}
+<!-- User dashboard -->
+<div class="row row-deck mb-4">
+  <div class="col-sm-6 col-lg-3">
+    <div class="card card-sm kpi-card">
+      <div class="card-body">
+        <div class="row align-items-center">
+          <div class="col-auto">
+            <span class="bg-warning text-white avatar">
+              <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                <path d="M12 12m-9 0a9 9 0 1 0 18 0a9 9 0 1 0 -18 0" />
+                <path d="M12 8l0 4" />
+                <path d="M12 16l.01 0" />
+              </svg>
+            </span>
+          </div>
+          <div class="col">
+            <div class="font-weight-medium">ISSUE LEADS</div>
+            <div class="h2 mt-2 mb-0 text-warning">{{ issue_leads }}</div>
+            <div class="text-muted">Need attention</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-sm-6 col-lg-3">
+    <div class="card card-sm kpi-card">
+      <div class="card-body">
+        <div class="row align-items-center">
+          <div class="col-auto">
+            <span class="bg-info text-white avatar">
+              <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                <path d="M5 12l5 5l10 -10" />
+              </svg>
+            </span>
+          </div>
+          <div class="col">
+            <div class="font-weight-medium">ACTIVE TODAY</div>
+            <div class="h2 mt-2 mb-0 text-info">{{ (today_leads - issue_leads) if (today_leads - issue_leads) > 0 else 0 }}</div>
+            <div class="text-muted">Processing today</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-sm-6 col-lg-3">
+    <div class="card card-sm kpi-card">
+      <div class="card-body">
+        <div class="row align-items-center">
+          <div class="col-auto">
+            <span class="bg-primary text-white avatar">
+              <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                <path d="M8 7a4 4 0 1 0 8 0a4 4 0 0 0 -8 0" />
+                <path d="M6 21v-2a4 4 0 0 1 4 -4h4" />
+                <path d="M15 19l2 2l4 -4" />
+              </svg>
+            </span>
+          </div>
+          <div class="col">
+            <div class="font-weight-medium">RESOLVED TODAY</div>
+            <div class="h2 mt-2 mb-0 text-primary">{{ resolved_today }}</div>
+            <div class="text-muted">Completed today</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Issue Leads list (user) -->
+<div class="row row-deck">
+  <div class="col-lg-6">
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title">Issue Leads - Need Attention</h3>
+        <div class="card-actions"><span class="badge bg-danger">{{ issue_leads_list|length }}</span></div>
+      </div>
+      <div class="card-body">
+        {% if issue_leads_list %}
+        <div class="table-responsive">
+          <table class="table table-vcenter">
+            <thead><tr><th>Customer</th><th>Department</th><th>Issue Date</th><th>Actions</th></tr></thead>
+            <tbody>
+              {% for lead in issue_leads_list %}
+              <tr>
+                <td>
+                  <div class="d-flex align-items-center">
+                    <span class="avatar avatar-sm bg-danger-lt me-3"></span>
+                    <div>
+                      <div class="font-weight-medium">{{ lead.customer_name }}</div>
+                      <div class="text-muted small">{{ lead.customer_number }}</div>
+                    </div>
+                  </div>
+                </td>
+                <td><span class="badge bg-primary-lt">{{ lead.department }}</span></td>
+                <td><div class="text-muted small">{{ lead.created_at.strftime('%b %d, %Y') }}</div></td>
+                <td>
+                  <div class="btn-group">
+                    <a href="{{ url_for('edit_lead', lead_id=lead.id) }}" class="btn btn-sm btn-warning">Edit</a>
+                    <form method="POST" action="{{ url_for('resolve_lead', lead_id=lead.id) }}" class="d-inline">
+                      <button type="submit" class="btn btn-sm btn-success" onclick="return confirm('Mark as resolved?')">Resolve</button>
+                    </form>
+                  </div>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <div class="empty"><p class="empty-title">No issue leads</p></div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
 {% endif %}
 {% endblock %}
 
@@ -278,14 +333,17 @@ document.addEventListener('DOMContentLoaded', function() {
       },
       options: {
         responsive: true,
-        plugins: {
-          legend: { position: 'bottom', labels: { usePointStyle: true, padding: 20, font: { size: 11 } } }
-        },
+        plugins: { legend: { position: 'bottom', labels: { usePointStyle: true, padding: 20, font: { size: 11 }}} },
         cutout: '65%'
       }
     });
   }
   {% endif %}
+
+  setInterval(() => {
+    const el = document.getElementById('update-time');
+    if (el) el.textContent = new Date().toLocaleTimeString();
+  }, 60000);
 });
 </script>
 {% endblock %}

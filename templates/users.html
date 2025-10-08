@@ -190,7 +190,7 @@
                 <div>
                   <div class="fw-bold">{{ user.username }}</div>
                   <div class="text-muted small">ID: {{ user.id }}</div>
-                  {% if user.otp_secret %}
+                  {% if user.otp_secret and current_user.role == 'admin' %}
                   <div class="text-muted small mt-1">
                     <span class="badge bg-light text-dark">
                       🔑 OTP Secret: <code>{{ user.otp_secret }}</code>
@@ -259,17 +259,6 @@
       </div>
     </div>
     {% endif %}
-  </div>
-</div>
-
-<!-- Placeholder Chart -->
-<div class="card mt-4">
-  <div class="card-header">
-    <h3 class="card-title">User Activity Overview</h3>
-  </div>
-  <div class="card-body text-center text-muted">
-    <p>📊 User activity tracking & analytics coming soon...</p>
-    <p class="small text-muted">Until then, enjoy your clean, organized team overview 💼</p>
   </div>
 </div>
 {% endblock %}
