@@ -1,5 +1,4 @@
 {% extends "base.html" %}
-
 {% block title %}Dashboard - AccBoost CRM{% endblock %}
 
 {% block content %}
@@ -31,7 +30,30 @@
 <!-- ============================ -->
 <!-- 🔹 ADMIN DASHBOARD -->
 <!-- ============================ -->
-{{ super() }}
+<div class="row mb-4">
+  <div class="col-md-6">
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title">Leads by Department</h3>
+      </div>
+      <div class="card-body text-center">
+        <canvas id="deptChart" width="100%" height="80"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-6">
+    <div class="card">
+      <div class="card-body text-center">
+        <h3 class="card-title">Admin Summary</h3>
+        <p class="text-muted mb-2">Total Leads: <strong>{{ total_leads }}</strong></p>
+        <p class="text-muted mb-2">Your Leads: <strong>{{ my_leads }}</strong></p>
+        <p class="text-muted mb-0">New Today: <strong>{{ new_today }}</strong></p>
+      </div>
+    </div>
+  </div>
+</div>
+
 {% elif is_processor %}
 <!-- ============================ -->
 <!-- 🟢 PROCESSOR DASHBOARD -->
@@ -111,6 +133,7 @@
               </div>
             </a>
           </div>
+
           <div class="col-md-4">
             <a href="{{ url_for('view_leads') }}" class="card card-sm bg-primary text-white action-tile">
               <div class="card-body text-center p-3">
@@ -123,6 +146,7 @@
               </div>
             </a>
           </div>
+
           <div class="col-md-4">
             <a href="{{ url_for('add_lead') }}" class="card card-sm bg-info text-white action-tile">
               <div class="card-body text-center p-3">
@@ -150,7 +174,6 @@
 {% endblock %}
 
 {% block scripts %}
-<!-- Chart.js for admin only -->
 {% if is_admin %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
@@ -164,7 +187,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 labels: {{ dept_labels|default([])|tojson }},
                 datasets: [{
                     data: {{ dept_counts|default([])|tojson }},
-                    backgroundColor: ['#206bc4','#2fb344','#f59f00','#4299e1','#e64980','#868e96','#5c7cfa','#20c997'],
+                    backgroundColor: ['#206bc4','#2fb344','#f59f00','#e64980','#20c997','#5c7cfa','#4299e1','#868e96'],
                     borderColor: '#fff',
                     borderWidth: 2
                 }]
@@ -172,10 +195,7 @@ document.addEventListener('DOMContentLoaded', function() {
             options: {
                 responsive: true,
                 plugins: {
-                    legend: { 
-                        position: 'bottom', 
-                        labels: { usePointStyle: true, padding: 20, font: { size: 11 } } 
-                    }
+                    legend: { position: 'bottom', labels: { usePointStyle: true, padding: 20, font: { size: 11 } } }
                 },
                 cutout: '65%'
             }

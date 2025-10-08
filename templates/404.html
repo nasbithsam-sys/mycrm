@@ -1,8 +1,49 @@
 {% extends "base.html" %}
+{% block title %}404 - Page Not Found{% endblock %}
+
 {% block content %}
-<div class="container mt-5">
-  <h1>404 - Page Not Found</h1>
-  <p>The page you're looking for doesn't exist.</p>
-  <a href="{{ url_for('dashboard') }}" class="btn btn-primary">Go to Dashboard</a>
+<div class="d-flex align-items-center justify-content-center vh-100 text-center">
+  <div>
+    <!-- 🚀 Floating Emoji Animation -->
+    <div class="mb-4">
+      <span class="fs-1" id="float-emoji">🛰️</span>
+    </div>
+
+    <h1 class="display-4 fw-bold text-primary">404</h1>
+    <h3 class="text-muted mb-3">Looks like you’ve gone off the grid 🧭</h3>
+    <p class="text-secondary mb-4">
+      The page you’re searching for doesn’t exist — maybe it moved, or maybe it never did.<br>
+      <small class="text-muted">Even the best explorers take a wrong turn sometimes.</small>
+    </p>
+
+    <a href="{{ url_for('dashboard') }}" class="btn btn-primary btn-lg shadow">
+      🔙 Back to Dashboard
+    </a>
+
+    <div class="mt-4 small text-muted">
+      <i>Tip:</i> If you ended up here by mistake, it might be time for a coffee refill ☕
+    </div>
+  </div>
 </div>
+
+<!-- ✅ Subtle Floating Animation -->
+<style>
+  #float-emoji {
+    display: inline-block;
+    animation: float 3s ease-in-out infinite;
+  }
+  @keyframes float {
+    0% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+    100% { transform: translateY(0); }
+  }
+  .btn-primary {
+    transition: all 0.3s ease;
+  }
+  .btn-primary:hover {
+    box-shadow: 0 0 15px rgba(0, 123, 255, 0.6);
+    transform: translateY(-2px);
+  }
+</style>
+
 {% endblock %}

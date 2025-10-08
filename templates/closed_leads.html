@@ -5,48 +5,53 @@
 <div class="page-header">
   <div class="row align-items-center">
     <div class="col">
-      <h2 class="page-title">Closed Leads</h2>
+      <h1 class="page-title">Closed Leads</h1>
       <div class="text-muted mt-1">Manage and review all closed leads</div>
     </div>
 
     <div class="col-auto ms-auto d-print-none">
-      <div class="btn-list">
+      <div class="btn-list align-items-center">
+
         <!-- Date Range Filter -->
-        <form action="{{ url_for('closed_leads') }}" method="GET" class="d-flex align-items-center gap-2">
+        <form action="{{ url_for('closed_leads') }}" method="GET" class="d-flex align-items-end gap-2 flex-wrap">
           <div>
             <label class="form-label mb-0 small text-muted">From Date</label>
             <input type="date" name="start_date" value="{{ start_date or '' }}" class="form-control form-control-sm">
           </div>
           <div>
-            <label class="form-label mb-0 small text-muted">To Date (Today)</label>
+            <label class="form-label mb-0 small text-muted">To Date</label>
             <input type="date" name="end_date" value="{{ end_date or now.strftime('%Y-%m-%d') }}" class="form-control form-control-sm">
           </div>
 
           <button type="submit" class="btn btn-primary btn-sm">Filter</button>
-          <a href="{{ url_for('closed_leads') }}" class="btn btn-secondary btn-sm">Reset</a>
+          <a href="{{ url_for('closed_leads') }}" class="btn btn-outline-secondary btn-sm">Reset</a>
+        </form>
 
-          <!-- Export Dropdown -->
-          <div class="dropdown">
-            <button class="btn btn-success btn-sm dropdown-toggle" data-bs-toggle="dropdown" type="button">
-              Export Report
-            </button>
-            <div class="dropdown-menu dropdown-menu-end">
-              <a class="dropdown-item" href="{{ url_for('export_closed_leads', type='csv', start_date=start_date, end_date=end_date) }}">
-                <i class="ti ti-file-text me-2"></i> Export as CSV
-              </a>
-              <a class="dropdown-item" href="{{ url_for('export_closed_leads', type='xlsx', start_date=start_date, end_date=end_date) }}">
-                <i class="ti ti-file-spreadsheet me-2"></i> Export as Excel
-              </a>
-              <a class="dropdown-item" href="{{ url_for('export_closed_leads', type='pdf', start_date=start_date, end_date=end_date) }}">
-                <i class="ti ti-file-description me-2"></i> Export as PDF
-              </a>
-            </div>
+        <!-- Export Dropdown -->
+        <div class="dropdown">
+          <button class="btn btn-success btn-sm dropdown-toggle" data-bs-toggle="dropdown" type="button">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon me-1" width="16" height="16" viewBox="0 0 24 24"
+                 stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+              <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+              <path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2 -2v-2" />
+              <path d="M7 11l5 5l5 -5" />
+              <path d="M12 4l0 12" />
+            </svg>
+            Export
+          </button>
+          <div class="dropdown-menu dropdown-menu-end">
+            <a class="dropdown-item" href="{{ url_for('export_closed_leads', type='csv', start_date=start_date, end_date=end_date) }}">Export as CSV</a>
+            <a class="dropdown-item" href="{{ url_for('export_closed_leads', type='xlsx', start_date=start_date, end_date=end_date) }}">Export as Excel</a>
+            <a class="dropdown-item" href="{{ url_for('export_closed_leads', type='pdf', start_date=start_date, end_date=end_date) }}">Export as PDF</a>
           </div>
+        </div>
 
-          <!-- Archive All -->
-          <form action="{{ url_for('archive_all_closed') }}" method="POST" class="m-0">
-            <button type="submit" class="btn btn-outline-secondary btn-sm">Archive All</button>
-          </form>
+        <!-- Archive All -->
+        <form action="{{ url_for('archive_all_closed') }}" method="POST" class="m-0">
+          <button type="submit" class="btn btn-outline-secondary btn-sm"
+                  onclick="return confirm('Archive all closed leads?');">
+            Archive All
+          </button>
         </form>
       </div>
     </div>
@@ -55,81 +60,90 @@
 
 <!-- Leads Table -->
 <div class="card mt-3">
-  <div class="card-body border-bottom py-2">
-    <h3 class="card-title mb-0">
-      <span class="text-muted">Total Leads:</span> <strong>{{ total_leads }}</strong>
+  <div class="card-header">
+    <h3 class="card-title">
+      Closed Leads
+      <span class="text-muted small ms-2">(Total: {{ total_leads }})</span>
       {% if start_date and end_date %}
-      <span class="ms-3 text-muted small">(Filtered between {{ start_date }} → {{ end_date }})</span>
+        <span class="ms-3 text-muted small">(Filtered: {{ start_date }} → {{ end_date }})</span>
       {% endif %}
     </h3>
   </div>
 
-  <div class="table-responsive">
-    <table class="table table-vcenter card-table table-striped">
-      <thead>
-        <tr>
-          <th>ID</th>
-          <th>Customer Name</th>
-          <th>Number</th>
-          <th>Department</th>
-          <th>Service</th>
-          <th>Main Area</th>
-          <th>Second Area</th>
-          <th>Sub Location</th>
-          <th>Added By</th>
-          <th>Closed At</th>
-          <th>Closed By</th>
-          <th>Attachment</th>
-          <th>Status</th>
-          <th>Actions</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for lead in closed_leads %}
-        <tr>
-          <td>{{ lead.id }}</td>
-          <td>{{ lead.customer_name }}</td>
-          <td>{{ lead.customer_number }}</td>
-          <td>{{ lead.department }}</td>
-          <td>{{ lead.context_service }}</td>
-          <td>{{ lead.main_area }}</td>
-          <td>{{ lead.second_main_area or '' }}</td>
-          <td>{{ lead.sub_location or '' }}</td>
-          <td>{{ lead.added_by }}</td>
-          <td>{{ lead.closed_at.strftime('%Y-%m-%d %H:%M') if lead.closed_at else '' }}</td>
-          <td>{{ lead.closed_by_user.username if lead.closed_by_user else '' }}</td>
-          <td>
-            {% if lead.attachment_filename %}
-              <a href="{{ url_for('uploaded_file', filename=lead.attachment_filename) }}" target="_blank">View</a>
-            {% else %}
-              -
-            {% endif %}
-          </td>
-          <td><span class="badge bg-success">Closed</span></td>
-          <td>
-            <div class="dropdown">
-              <button class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown">
-                Actions
-              </button>
-              <div class="dropdown-menu dropdown-menu-end">
-                <form action="{{ url_for('reopen_lead', lead_id=lead.id) }}" method="POST">
-                  <button type="submit" class="dropdown-item">Reopen</button>
-                </form>
-                <form action="{{ url_for('delete_lead_permanent', lead_id=lead.id) }}" method="POST"
-                      onsubmit="return confirm('Are you sure you want to permanently delete this lead?');">
-                  <button type="submit" class="dropdown-item text-danger">Delete Permanently</button>
-                </form>
+  <div class="card-body">
+    {% if closed_leads %}
+    <div class="table-responsive">
+      <table class="table table-vcenter table-hover table-striped align-middle">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Customer Name</th>
+            <th>Number</th>
+            <th>Department</th>
+            <th>Service</th>
+            <th>Main Area</th>
+            <th>Second Area</th>
+            <th>Sub Location</th>
+            <th>Added By</th>
+            <th>Closed At</th>
+            <th>Closed By</th>
+            <th>Attachment</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for lead in closed_leads %}
+          <tr>
+            <td class="text-muted">#{{ lead.id }}</td>
+            <td><strong>{{ lead.customer_name }}</strong></td>
+            <td>{{ lead.customer_number }}</td>
+            <td><span class="badge bg-primary-lt">{{ lead.department }}</span></td>
+            <td class="text-truncate" style="max-width:200px;" title="{{ lead.context_service }}">{{ lead.context_service }}</td>
+            <td>{{ lead.main_area }}</td>
+            <td>{{ lead.second_main_area or '—' }}</td>
+            <td>{{ lead.sub_location or '—' }}</td>
+            <td>{{ lead.added_by }}</td>
+            <td>{{ lead.closed_at.strftime('%b %d, %Y %H:%M') if lead.closed_at else '—' }}</td>
+            <td>{{ lead.closed_by_user.username if lead.closed_by_user else '—' }}</td>
+
+            <!-- ✅ Cloudinary Attachment -->
+            <td>
+              {% if lead.attachment_filename %}
+                <a href="{{ lead.attachment_filename }}" target="_blank" class="text-primary">View</a>
+              {% else %}
+                <span class="text-muted">None</span>
+              {% endif %}
+            </td>
+
+            <td><span class="badge bg-success-lt">Closed</span></td>
+
+            <!-- ✅ Actions -->
+            <td>
+              <div class="dropdown">
+                <button class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown">Actions</button>
+                <div class="dropdown-menu dropdown-menu-end">
+                  <form action="{{ url_for('reopen_lead', lead_id=lead.id) }}" method="POST">
+                    <button type="submit" class="dropdown-item">Reopen</button>
+                  </form>
+                  <form action="{{ url_for('delete_lead_permanent', lead_id=lead.id) }}" method="POST"
+                        onsubmit="return confirm('Permanently delete this lead? This cannot be undone.');">
+                    <button type="submit" class="dropdown-item text-danger">Delete Permanently</button>
+                  </form>
+                </div>
               </div>
-            </div>
-          </td>
-        </tr>
-        {% else %}
-        <tr>
-          <td colspan="14" class="text-center text-muted py-4">No closed leads available.</td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="empty text-center py-5">
+      <p class="empty-title">No closed leads available</p>
+      <p class="empty-subtitle text-muted">You currently have no leads marked as done or closed.</p>
+    </div>
+    {% endif %}
   </div>
 </div>
 {% endblock %}

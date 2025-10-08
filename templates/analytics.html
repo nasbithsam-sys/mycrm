@@ -1,43 +1,32 @@
 {% extends "base.html" %}
-
 {% block title %}Analytics - AccBoost CRM{% endblock %}
 
 {% block content %}
 <div class="page-header">
   <div class="row align-items-center">
     <div class="col">
-      <h1 class="page-title">Advanced Analytics</h1>
+      <h1 class="page-title">📊 Advanced Analytics</h1>
       <div class="text-muted mt-1">Comprehensive insights and performance metrics</div>
     </div>
     <div class="col-auto">
       <div class="dropdown">
         <button class="btn btn-outline-primary dropdown-toggle" data-bs-toggle="dropdown">
-          <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-download" width="16" height="16" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+          <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-download" width="16" height="16"
+               viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none"
+               stroke-linecap="round" stroke-linejoin="round">
             <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
             <path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2 -2v-2" />
             <path d="M7 11l5 5l5 -5" />
-            <path d="M12 4l0 12" />
+            <path d="M12 4v12" />
           </svg>
           Export Data
         </button>
-        <div class="dropdown-menu">
+        <div class="dropdown-menu dropdown-menu-end shadow">
           <a class="dropdown-item" href="{{ url_for('export_closed_leads') }}">
-            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-table" width="16" height="16" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 8px;">
-              <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-              <path d="M3 5a2 2 0 0 1 2 -2h14a2 2 0 0 1 2 2v14a2 2 0 0 1 -2 2h-14a2 2 0 0 1 -2 -2v-14z" />
-              <path d="M3 10h18" />
-              <path d="M10 3v18" />
-            </svg>
-            Export All Leads (CSV)
+            <i class="ti ti-file-spreadsheet me-2"></i> Export All Leads (CSV)
           </a>
           <a class="dropdown-item" href="{{ url_for('export_closed_leads') }}">
-            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-archive" width="16" height="16" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 8px;">
-              <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-              <path d="M3 4m0 2a2 2 0 0 1 2 -2h14a2 2 0 0 1 2 2v0a2 2 0 0 1 -2 2h-14a2 2 0 0 1 -2 -2z" />
-              <path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-10" />
-              <path d="M10 12l4 0" />
-            </svg>
-            Export Closed Leads (CSV)
+            <i class="ti ti-archive me-2"></i> Export Closed Leads (CSV)
           </a>
         </div>
       </div>
@@ -47,129 +36,86 @@
 
 <!-- Summary Cards -->
 <div class="row row-deck mb-4">
+  <!-- Today -->
   <div class="col-sm-6 col-lg-3">
-    <div class="card card-sm">
+    <div class="card card-sm shadow-sm">
       <div class="card-body">
         <div class="row align-items-center">
           <div class="col-auto">
             <span class="bg-primary text-white avatar">
-              <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-                <path d="M4 5m0 2a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v12a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2z" />
-                <path d="M16 3l0 4" />
-                <path d="M8 3l0 4" />
-                <path d="M4 11l16 0" />
-                <path d="M8 15h2v2h-2z" />
-              </svg>
+              <i class="ti ti-calendar-event"></i>
             </span>
           </div>
           <div class="col">
-            <div class="font-weight-medium">TODAY'S LEADS</div>
+            <div class="font-weight-medium text-uppercase small text-muted">Today's Leads</div>
             <div class="h2 mt-2 mb-0 text-primary">{{ today_leads }}</div>
-            <div class="text-success small">
-              <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-trending-up" width="16" height="16" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-                <path d="M3 17l6 -6l4 4l8 -8" />
-                <path d="M14 7l7 0l0 7" />
-              </svg>
-              Today's activity
+            <div class="text-success small d-flex align-items-center">
+              <i class="ti ti-trending-up me-1"></i> Active today
             </div>
           </div>
         </div>
       </div>
     </div>
   </div>
-  
+
+  <!-- Weekly -->
   <div class="col-sm-6 col-lg-3">
-    <div class="card card-sm">
+    <div class="card card-sm shadow-sm">
       <div class="card-body">
         <div class="row align-items-center">
           <div class="col-auto">
             <span class="bg-success text-white avatar">
-              <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-                <path d="M4 7a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v12a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2v-12z" />
-                <path d="M16 3v4" />
-                <path d="M8 3v4" />
-                <path d="M4 11h16" />
-                <path d="M7 14h.013" />
-                <path d="M10.5 14h.5" />
-                <path d="M14 14h.5" />
-                <path d="M17 14h.5" />
-              </svg>
+              <i class="ti ti-calendar-week"></i>
             </span>
           </div>
           <div class="col">
-            <div class="font-weight-medium">WEEKLY TOTAL</div>
-            <div class="h2 mt-2 mb-0 text-success">
-              {{ week_leads|sum if week_leads else 0 }}
-            </div>
+            <div class="font-weight-medium text-uppercase small text-muted">Weekly Total</div>
+            <div class="h2 mt-2 mb-0 text-success">{{ week_leads|sum if week_leads else 0 }}</div>
             <div class="text-muted small">Last 4 weeks</div>
           </div>
         </div>
       </div>
     </div>
   </div>
-  
+
+  <!-- Monthly -->
   <div class="col-sm-6 col-lg-3">
-    <div class="card card-sm">
+    <div class="card card-sm shadow-sm">
       <div class="card-body">
         <div class="row align-items-center">
           <div class="col-auto">
             <span class="bg-warning text-white avatar">
-              <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-                <path d="M4 7a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v12a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2v-12z" />
-                <path d="M16 3v4" />
-                <path d="M8 3v4" />
-                <path d="M4 11h16" />
-                <path d="M7 14h.013" />
-                <path d="M10.5 14h.5" />
-                <path d="M14 14h.5" />
-                <path d="M17 14h.5" />
-                <path d="M10.5 17h.5" />
-                <path d="M14 17h.5" />
-                <path d="M17 17h.5" />
-              </svg>
+              <i class="ti ti-calendar-month"></i>
             </span>
           </div>
           <div class="col">
-            <div class="font-weight-medium">MONTHLY TOTAL</div>
-            <div class="h2 mt-2 mb-0 text-warning">
-              {{ month_leads|sum if month_leads else 0 }}
-            </div>
+            <div class="font-weight-medium text-uppercase small text-muted">Monthly Total</div>
+            <div class="h2 mt-2 mb-0 text-warning">{{ month_leads|sum if month_leads else 0 }}</div>
             <div class="text-warning small">Last 6 months</div>
           </div>
         </div>
       </div>
     </div>
   </div>
-  
+
+  <!-- Confirmed -->
   <div class="col-sm-6 col-lg-3">
-    <div class="card card-sm">
+    <div class="card card-sm shadow-sm">
       <div class="card-body">
         <div class="row align-items-center">
           <div class="col-auto">
             <span class="bg-info text-white avatar">
-              <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-                <path d="M8 7l4 -4l4 4" />
-                <path d="M12 3l0 13" />
-                <path d="M8 21l8 0" />
-                <path d="M12 17l0 4" />
-              </svg>
+              <i class="ti ti-check"></i>
             </span>
           </div>
           <div class="col">
-            <div class="font-weight-medium">CONFIRMED LEADS</div>
+            <div class="font-weight-medium text-uppercase small text-muted">Confirmed Leads</div>
             <div class="h3 mt-2 mb-0 text-info">
               {% if confirmed_dept_stats and confirmed_dept_stats|length > 0 %}
                 {{ confirmed_dept_stats|sum(attribute=1) }}
               {% else %}0{% endif %}
             </div>
-            <div class="text-info small">
-              Successfully closed
-            </div>
+            <div class="text-info small">Successfully closed</div>
           </div>
         </div>
       </div>
@@ -177,141 +123,58 @@
   </div>
 </div>
 
-<!-- Analytics Tabs -->
-<div class="card">
+<!-- Tabs for charts -->
+<div class="card shadow-sm">
   <div class="card-header">
     <ul class="nav nav-tabs card-header-tabs" data-bs-toggle="tabs">
-      <li class="nav-item">
-        <a href="#weekly" class="nav-link active" data-bs-toggle="tab">
-          <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-week" width="16" height="16" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 8px;">
-            <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-            <path d="M4 7a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v12a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2v-12z" />
-            <path d="M16 3v4" />
-            <path d="M8 3v4" />
-            <path d="M4 11h16" />
-            <path d="M8 14v0" />
-            <path d="M8 18v0" />
-            <path d="M12 16v0" />
-            <path d="M16 14v0" />
-            <path d="M16 18v0" />
-          </svg>
-          Weekly Overview
-        </a>
-      </li>
-      <li class="nav-item">
-        <a href="#monthly" class="nav-link" data-bs-toggle="tab">
-          <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-month" width="16" height="16" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 8px;">
-            <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-            <path d="M4 7a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v12a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2v-12z" />
-            <path d="M16 3v4" />
-            <path d="M8 3v4" />
-            <path d="M4 11h16" />
-            <path d="M7 14h.013" />
-            <path d="M10.5 14h.5" />
-            <path d="M14 14h.5" />
-            <path d="M17 14h.5" />
-            <path d="M10.5 17h.5" />
-            <path d="M14 17h.5" />
-            <path d="M17 17h.5" />
-            <path d="M10.5 20h.5" />
-            <path d="M14 20h.5" />
-            <path d="M17 20h.5" />
-          </svg>
-          Monthly Reports
-        </a>
-      </li>
-      <li class="nav-item">
-        <a href="#dept" class="nav-link" data-bs-toggle="tab">
-          <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-building" width="16" height="16" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 8px;">
-            <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-            <path d="M3 21l18 0" />
-            <path d="M5 21v-14l8 -4v18" />
-            <path d="M19 21v-10l-6 -4" />
-            <path d="M9 9l0 .01" />
-            <path d="M9 12l0 .01" />
-            <path d="M9 15l0 .01" />
-            <path d="M9 18l0 .01" />
-          </svg>
-          Department Analysis
-        </a>
-      </li>
-      <li class="nav-item">
-        <a href="#status" class="nav-link" data-bs-toggle="tab">
-          <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-chart-pie" width="16" height="16" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 8px;">
-            <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-            <path d="M10 3.2a9 9 0 1 0 10.8 10.8a1 1 0 0 0 -1 -1h-6.8a2 2 0 0 1 -2 -2v-7a.9 .9 0 0 0 -1 -.8" />
-            <path d="M15 3.5a9 9 0 0 1 5.5 5.5h-4.5a1 1 0 0 1 -1 -1v-4.5" />
-          </svg>
-          Status Distribution
-        </a>
-      </li>
+      <li class="nav-item"><a href="#weekly" class="nav-link active" data-bs-toggle="tab">Weekly</a></li>
+      <li class="nav-item"><a href="#monthly" class="nav-link" data-bs-toggle="tab">Monthly</a></li>
+      <li class="nav-item"><a href="#dept" class="nav-link" data-bs-toggle="tab">Departments</a></li>
+      <li class="nav-item"><a href="#status" class="nav-link" data-bs-toggle="tab">Status</a></li>
     </ul>
   </div>
-  
+
   <div class="card-body">
     <div class="tab-content">
-      <!-- Weekly Tab -->
       <div class="tab-pane active show" id="weekly">
-        <h3 class="card-title">Weekly Performance (Last 4 Weeks)</h3>
-        <div class="chart-container" style="height: 400px;">
-          <canvas id="weeklyChart"></canvas>
-        </div>
+        <h3 class="card-title">Weekly Performance</h3>
+        <div style="height:400px;"><canvas id="weeklyChart"></canvas></div>
       </div>
-      
-      <!-- Monthly Tab -->
+
       <div class="tab-pane" id="monthly">
-        <h3 class="card-title">Monthly Growth (Last 6 Months)</h3>
-        <div class="chart-container" style="height: 400px;">
-          <canvas id="monthlyChart"></canvas>
-        </div>
+        <h3 class="card-title">Monthly Growth</h3>
+        <div style="height:400px;"><canvas id="monthlyChart"></canvas></div>
       </div>
-      
-      <!-- Department Tab -->
+
       <div class="tab-pane" id="dept">
         <div class="row">
           <div class="col-lg-8">
-            <h3 class="card-title">Department Distribution</h3>
-            <div class="chart-container" style="height: 400px;">
-              <canvas id="deptChart"></canvas>
-            </div>
+            <h3 class="card-title">Department Overview</h3>
+            <div style="height:400px;"><canvas id="deptChart"></canvas></div>
           </div>
           <div class="col-lg-4">
-            <h3 class="card-title">Department Stats</h3>
+            <h4 class="card-title">Department Stats</h4>
             <div class="list-group list-group-flush">
               {% for dept, count in dept_stats %}
               <div class="list-group-item">
-                <div class="row align-items-center">
-                  <div class="col">
-                    <div class="font-weight-medium">{{ dept }}</div>
-                  </div>
-                  <div class="col-auto">
-                    <span class="badge bg-primary">{{ count }}</span>
-                  </div>
+                <div class="d-flex justify-content-between">
+                  <span>{{ dept }}</span>
+                  <span class="badge bg-primary">{{ count }}</span>
                 </div>
                 <div class="progress progress-sm mt-2">
-                  <div class="progress-bar" 
-                       style="width: {{ (count / (dept_stats|sum(attribute='1') or 1)) * 100 }}%">
-                  </div>
+                  <div class="progress-bar" style="width: {{ (count / (dept_stats|sum(attribute='1') or 1)) * 100 }}%"></div>
                 </div>
-                <div class="text-muted small">
-                  {{ "%.1f"|format((count / (dept_stats|sum(attribute='1') or 1)) * 100) }}%
-                </div>
+                <small class="text-muted">{{ "%.1f"|format((count / (dept_stats|sum(attribute='1') or 1)) * 100) }}%</small>
               </div>
               {% endfor %}
             </div>
-            
-            <h4 class="card-title mt-4">Confirmed Leads by Department</h4>
+
+            <h4 class="card-title mt-4">Confirmed Leads</h4>
             <div class="list-group list-group-flush">
               {% for dept, count in confirmed_dept_stats %}
-              <div class="list-group-item">
-                <div class="row align-items-center">
-                  <div class="col">
-                    <div class="font-weight-medium">{{ dept }}</div>
-                  </div>
-                  <div class="col-auto">
-                    <span class="badge bg-success">{{ count }}</span>
-                  </div>
-                </div>
+              <div class="list-group-item d-flex justify-content-between">
+                <span>{{ dept }}</span>
+                <span class="badge bg-success">{{ count }}</span>
               </div>
               {% endfor %}
             </div>
@@ -319,45 +182,36 @@
         </div>
       </div>
 
-      <!-- Status Distribution Tab -->
       <div class="tab-pane" id="status">
         <div class="row">
           <div class="col-lg-8">
             <h3 class="card-title">Lead Status Distribution</h3>
-            <div class="chart-container" style="height: 400px;">
-              <canvas id="statusChart"></canvas>
-            </div>
+            <div style="height:400px;"><canvas id="statusChart"></canvas></div>
           </div>
           <div class="col-lg-4">
-            <h3 class="card-title">Status Breakdown</h3>
+            <h4 class="card-title">Status Breakdown</h4>
             <div class="list-group list-group-flush">
               {% for status, count in status_stats %}
               <div class="list-group-item">
-                <div class="row align-items-center">
-                  <div class="col">
-                    <div class="font-weight-medium">{{ status }}</div>
-                  </div>
-                  <div class="col-auto">
-                    <span class="badge 
-                      {% if status == 'New Lead' %}bg-blue
-                      {% elif status == 'Issue in Lead' %}bg-red
-                      {% elif status == 'Pending Outreach' %}bg-orange
-                      {% elif status == 'Texted / Call Done' %}bg-yellow
-                      {% elif status == 'In Progress' %}bg-purple
-                      {% elif status == 'Done' %}bg-green
-                      {% else %}bg-secondary{% endif %}">
-                      {{ count }}
-                    </span>
-                  </div>
+                <div class="d-flex justify-content-between">
+                  <span>{{ status }}</span>
+                  <span class="badge 
+                    {% if status == 'New Lead' %}bg-blue
+                    {% elif status == 'Issue in Lead' %}bg-red
+                    {% elif status == 'Pending Outreach' %}bg-orange
+                    {% elif status == 'Texted / Call Done' %}bg-yellow
+                    {% elif status == 'In Progress' %}bg-purple
+                    {% elif status == 'Done' %}bg-green
+                    {% else %}bg-secondary{% endif %}">
+                    {{ count }}
+                  </span>
                 </div>
                 <div class="progress progress-sm mt-2">
-                  <div class="progress-bar" 
+                  <div class="progress-bar"
                        style="width: {{ (count / (status_stats|sum(attribute='1') or 1)) * 100 }}%">
                   </div>
                 </div>
-                <div class="text-muted small">
-                  {{ "%.1f"|format((count / (status_stats|sum(attribute='1') or 1)) * 100) }}%
-                </div>
+                <small class="text-muted">{{ "%.1f"|format((count / (status_stats|sum(attribute='1') or 1)) * 100) }}%</small>
               </div>
               {% endfor %}
             </div>
@@ -369,148 +223,67 @@
 </div>
 
 {% block scripts %}
-<!-- Chart.js -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Weekly Chart (Line) - REAL DATA
-    const weeklyCtx = document.getElementById('weeklyChart').getContext('2d');
-    const weeklyChart = new Chart(weeklyCtx, {
-        type: 'bar',
-        data: {
-            labels: {{ week_labels|tojson if week_labels else ['Week 1', 'Week 2', 'Week 3', 'Week 4'] }},
-            datasets: [{
-                label: 'Weekly Leads',
-                data: {{ week_leads|tojson if week_leads else [0, 0, 0, 0] }},
-                backgroundColor: 'rgba(39, 174, 96, 0.8)',
-                borderColor: 'rgba(39, 174, 96, 1)',
-                borderWidth: 2,
-                borderRadius: 8
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: {
-                    display: false
-                }
-            },
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    grid: {
-                        color: 'rgba(0,0,0,0.1)'
-                    }
-                },
-                x: {
-                    grid: {
-                        display: false
-                    }
-                }
-            }
-        }
-    });
+document.addEventListener('DOMContentLoaded', () => {
+  const weeklyChart = new Chart(document.getElementById('weeklyChart'), {
+    type: 'bar',
+    data: {
+      labels: {{ week_labels|tojson if week_labels else ['Week 1','Week 2','Week 3','Week 4'] }},
+      datasets: [{
+        data: {{ week_leads|tojson if week_leads else [0,0,0,0] }},
+        backgroundColor: 'rgba(39, 174, 96, 0.8)',
+        borderRadius: 6
+      }]
+    },
+    options: { responsive: true, plugins: { legend: { display: false } } }
+  });
 
-    // Monthly Chart (Bar) - REAL DATA
-    const monthlyCtx = document.getElementById('monthlyChart').getContext('2d');
-    const monthlyChart = new Chart(monthlyCtx, {
-        type: 'line',
-        data: {
-            labels: {{ month_labels|tojson if month_labels else ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'] }},
-            datasets: [{
-                label: 'Monthly Leads',
-                data: {{ month_leads|tojson if month_leads else [0, 0, 0, 0, 0, 0] }},
-                borderColor: 'rgba(241, 196, 15, 1)',
-                backgroundColor: 'rgba(241, 196, 15, 0.1)',
-                borderWidth: 3,
-                tension: 0.4,
-                fill: true
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: {
-                    display: false
-                }
-            }
-        }
-    });
+  const monthlyChart = new Chart(document.getElementById('monthlyChart'), {
+    type: 'line',
+    data: {
+      labels: {{ month_labels|tojson if month_labels else ['Jan','Feb','Mar','Apr','May','Jun'] }},
+      datasets: [{
+        data: {{ month_leads|tojson if month_leads else [0,0,0,0,0,0] }},
+        borderColor: '#f1c40f', backgroundColor: 'rgba(241,196,15,0.15)', tension: 0.4, fill: true
+      }]
+    },
+    options: { responsive: true, plugins: { legend: { display: false } } }
+  });
 
-    // Department Chart (Doughnut) - REAL DATA
-    const deptCtx = document.getElementById('deptChart').getContext('2d');
-    const deptChart = new Chart(deptCtx, {
-        type: 'doughnut',
-        data: {
-            labels: {{ dept_stats|map(attribute='0')|list|tojson if dept_stats else [] }},
-            datasets: [{
-                data: {{ dept_stats|map(attribute='1')|list|tojson if dept_stats else [] }},
-                backgroundColor: [
-                    '#206bc4', '#4299e1', '#667eea', '#764ba2', '#f093fb', 
-                    '#f5576c', '#e53e3e', '#dd6b20', '#f59e0b', '#10b981'
-                ],
-                borderWidth: 3,
-                borderColor: '#fff'
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            cutout: '60%',
-            plugins: {
-                legend: {
-                    position: 'bottom',
-                    labels: {
-                        usePointStyle: true,
-                        padding: 20
-                    }
-                }
-            }
-        }
-    });
+  const deptChart = new Chart(document.getElementById('deptChart'), {
+    type: 'doughnut',
+    data: {
+      labels: {{ dept_stats|map(attribute='0')|list|tojson if dept_stats else [] }},
+      datasets: [{
+        data: {{ dept_stats|map(attribute='1')|list|tojson if dept_stats else [] }},
+        backgroundColor: ['#206bc4','#4299e1','#667eea','#f093fb','#e53e3e','#f59e0b','#10b981']
+      }]
+    },
+    options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+  });
 
-    // Status Chart (Pie) - REAL DATA
-    const statusCtx = document.getElementById('statusChart').getContext('2d');
-    const statusChart = new Chart(statusCtx, {
-        type: 'pie',
-        data: {
-            labels: {{ status_stats|map(attribute='0')|list|tojson if status_stats else [] }},
-            datasets: [{
-                data: {{ status_stats|map(attribute='1')|list|tojson if status_stats else [] }},
-                backgroundColor: [
-                    '#206bc4', '#e53e3e', '#f59f00', '#fbbf24', '#8b5cf6', '#10b981',
-                    '#6b7280', '#ef4444', '#f97316', '#84cc16', '#06b6d4', '#8b5cf6'
-                ],
-                borderWidth: 3,
-                borderColor: '#fff'
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: {
-                    position: 'bottom',
-                    labels: {
-                        usePointStyle: true,
-                        padding: 20
-                    }
-                }
-            }
-        }
-    });
+  const statusChart = new Chart(document.getElementById('statusChart'), {
+    type: 'pie',
+    data: {
+      labels: {{ status_stats|map(attribute='0')|list|tojson if status_stats else [] }},
+      datasets: [{
+        data: {{ status_stats|map(attribute='1')|list|tojson if status_stats else [] }},
+        backgroundColor: ['#206bc4','#e53e3e','#f59f00','#8b5cf6','#10b981','#6b7280']
+      }]
+    },
+    options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+  });
 });
 </script>
 
 <style>
-.bg-blue { background-color: #206bc4 !important; color: white !important; }
-.bg-red { background-color: #e53e3e !important; color: white !important; }
-.bg-orange { background-color: #f59f00 !important; color: white !important; }
-.bg-yellow { background-color: #fbbf24 !important; color: black !important; }
-.bg-purple { background-color: #8b5cf6 !important; color: white !important; }
-.bg-green { background-color: #10b981 !important; color: white !important; }
+.bg-blue { background-color: #206bc4 !important; color: #fff; }
+.bg-red { background-color: #e53e3e !important; color: #fff; }
+.bg-orange { background-color: #f59f00 !important; color: #fff; }
+.bg-yellow { background-color: #fbbf24 !important; color: #000; }
+.bg-purple { background-color: #8b5cf6 !important; color: #fff; }
+.bg-green { background-color: #10b981 !important; color: #fff; }
 </style>
 {% endblock %}
 {% endblock %}

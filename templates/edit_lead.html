@@ -1,169 +1,164 @@
 {% extends "base.html" %}
-
 {% block title %}Edit Lead - AccBoost CRM{% endblock %}
 
 {% block content %}
 <div class="page-header">
-    <div class="row align-items-center">
-        <div class="col">
-            <h1 class="page-title">Edit Lead</h1>
-            <div class="text-muted mt-1">
-                Update lead information - Status:
-                <span class="badge {% if lead.status == 'Issue in Lead' %}bg-danger{% else %}bg-warning{% endif %}">
-                    {{ lead.status }}
-                </span>
-            </div>
-        </div>
-        <div class="col-auto">
-            <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">
-                ← Back to Dashboard
-            </a>
-        </div>
+  <div class="row align-items-center">
+    <div class="col">
+      <h1 class="page-title">Edit Lead</h1>
+      <div class="text-muted mt-1">
+        Update lead information &nbsp;—&nbsp; Status:
+        <span class="badge {% if lead.status == 'Issue in Lead' %}bg-danger{% elif lead.status == 'Updated' %}bg-success{% else %}bg-warning{% endif %}">
+          {{ lead.status }}
+        </span>
+      </div>
     </div>
+    <div class="col-auto">
+      <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">
+        ← Back to Dashboard
+      </a>
+    </div>
+  </div>
 </div>
 
 <div class="row">
-    <div class="col-12">
-        <div class="card">
-            <div class="card-header">
-                <h3 class="card-title">Lead Information</h3>
+  <div class="col-12">
+    <div class="card shadow-sm">
+      <div class="card-header border-bottom">
+        <h3 class="card-title">Lead Information</h3>
+      </div>
+      <div class="card-body">
+
+        <!-- Flash Messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            {% for category, message in messages %}
+              <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+              </div>
+            {% endfor %}
+          {% endif %}
+        {% endwith %}
+
+        <!-- Edit Lead Form -->
+        <form method="POST" enctype="multipart/form-data">
+          <div class="row">
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label class="form-label required">Customer Name</label>
+                <input type="text" name="customer_name" class="form-control"
+                       value="{{ lead.customer_name }}" required maxlength="150">
+                <small class="form-hint">Enter the customer’s full name</small>
+              </div>
             </div>
-            <div class="card-body">
-                <!-- Flash Messages -->
-                {% with messages = get_flashed_messages(with_categories=true) %}
-                    {% if messages %}
-                        {% for category, message in messages %}
-                            <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
-                                {{ message }}
-                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                            </div>
-                        {% endfor %}
-                    {% endif %}
-                {% endwith %}
 
-                <!-- Form -->
-                <form method="POST" enctype="multipart/form-data">
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label class="form-label">Customer Name *</label>
-                                <input type="text" class="form-control" name="customer_name" 
-                                       value="{{ lead.customer_name }}" required maxlength="150">
-                                <div class="form-text">Required field</div>
-                            </div>
-                        </div>
-
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label class="form-label">Customer Number *</label>
-                                <input type="text" class="form-control" name="customer_number" 
-                                       value="{{ lead.customer_number }}" required maxlength="20">
-                                <div class="form-text">Enter number in any format</div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label">Department *</label>
-                        <select class="form-select" name="department" required>
-                            <option value="">Select a department</option>
-                            {% for dept in departments %}
-                            <option value="{{ dept }}" {% if lead.department == dept %}selected{% endif %}>
-                                {{ dept }}
-                            </option>
-                            {% endfor %}
-                        </select>
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label">Context/Service *</label>
-                        <textarea class="form-control" name="context_service" rows="4" required
-                                  placeholder="Describe the service context...">{{ lead.context_service }}</textarea>
-                    </div>
-
-                    <div class="row">
-                        <div class="col-md-4">
-                            <div class="mb-3">
-                                <label class="form-label">Main Area *</label>
-                                <input type="text" class="form-control" name="main_area"
-                                       value="{{ lead.main_area }}" required maxlength="100">
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="mb-3">
-                                <label class="form-label">Second Main Area</label>
-                                <input type="text" class="form-control" name="second_main_area"
-                                       value="{{ lead.second_main_area or '' }}" maxlength="100">
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="mb-3">
-                                <label class="form-label">Sub Location</label>
-                                <input type="text" class="form-control" name="sub_location"
-                                       value="{{ lead.sub_location or '' }}" maxlength="100">
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Attachment Section -->
-                    <div class="mb-4">
-                        <label class="form-label">Attachment (optional)</label>
-                        <input type="file" name="attachment" class="form-control">
-
-                        {% if lead.attachment_filename %}
-                            <div class="mt-3">
-                                <label>Current Attachment:</label><br>
-
-                                {% if lead.attachment_filename.endswith('.jpg') or
-                                      lead.attachment_filename.endswith('.jpeg') or
-                                      lead.attachment_filename.endswith('.png') or
-                                      lead.attachment_filename.endswith('.gif') %}
-                                    <img src="{{ lead.attachment_filename }}" alt="Attachment"
-                                         class="img-thumbnail" style="max-height: 150px;">
-                                {% else %}
-                                    <a href="{{ lead.attachment_filename }}" target="_blank" class="btn btn-sm btn-outline-info mt-1">
-                                        View Current File
-                                    </a>
-                                {% endif %}
-                            </div>
-                        {% endif %}
-                    </div>
-
-                    <!-- Info Box -->
-                    <div class="alert alert-info">
-                        <div class="d-flex align-items-center">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="icon me-2" width="24" height="24" viewBox="0 0 24 24"
-                                 stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round"
-                                 stroke-linejoin="round">
-                                <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-                                <path d="M12 9v4" />
-                                <path d="M12 16v.01" />
-                            </svg>
-                            <div>
-                                <strong>Note:</strong> After saving changes, this lead's status will automatically change
-                                from <span class="badge bg-danger">Issue in Lead</span>
-                                to <span class="badge bg-success">Updated</span>.
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="form-footer">
-                        <button type="submit" class="btn btn-primary">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24"
-                                 stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round"
-                                 stroke-linejoin="round">
-                                <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-                                <path d="M6 4h10l4 4v10a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2" />
-                                <path d="M12 14m-2 0a2 2 0 1 0 4 0a2 2 0 1 0 -4 0" />
-                                <path d="M14 4l0 4l-6 0l0 -4" />
-                            </svg>
-                            Update Lead
-                        </button>
-                        <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">Cancel</a>
-                    </div>
-                </form>
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label class="form-label required">Customer Number</label>
+                <input type="text" name="customer_number" class="form-control"
+                       value="{{ lead.customer_number }}" required maxlength="20">
+                <small class="form-hint">Accepts digits and symbols (e.g. +1 234-5678)</small>
+              </div>
             </div>
-        </div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label required">Department</label>
+            <select name="department" class="form-select" required>
+              <option value="">Select a department</option>
+              {% for dept in departments %}
+              <option value="{{ dept }}" {% if lead.department == dept %}selected{% endif %}>{{ dept }}</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label required">Context / Service</label>
+            <textarea name="context_service" class="form-control" rows="4" required
+                      placeholder="Describe the service context...">{{ lead.context_service }}</textarea>
+          </div>
+
+          <div class="row">
+            <div class="col-md-4">
+              <div class="mb-3">
+                <label class="form-label required">Main Area</label>
+                <input type="text" name="main_area" class="form-control"
+                       value="{{ lead.main_area }}" required maxlength="100">
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="mb-3">
+                <label class="form-label">Second Main Area</label>
+                <input type="text" name="second_main_area" class="form-control"
+                       value="{{ lead.second_main_area or '' }}" maxlength="100">
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="mb-3">
+                <label class="form-label">Sub Location</label>
+                <input type="text" name="sub_location" class="form-control"
+                       value="{{ lead.sub_location or '' }}" maxlength="100">
+              </div>
+            </div>
+          </div>
+
+          <!-- Attachment Section -->
+          <div class="mb-4">
+            <label class="form-label">Attachment (optional)</label>
+            <input type="file" name="attachment" class="form-control">
+            {% if lead.attachment_filename %}
+              <div class="mt-3">
+                <label class="fw-semibold text-muted">Current Attachment:</label><br>
+                {% if lead.attachment_filename.endswith('.jpg') or
+                      lead.attachment_filename.endswith('.jpeg') or
+                      lead.attachment_filename.endswith('.png') or
+                      lead.attachment_filename.endswith('.gif') %}
+                  <img src="{{ lead.attachment_filename }}" alt="Attachment"
+                       class="img-thumbnail shadow-sm mt-1" style="max-height: 150px;">
+                {% else %}
+                  <a href="{{ lead.attachment_filename }}" target="_blank"
+                     class="btn btn-sm btn-outline-info mt-1">View Current File</a>
+                {% endif %}
+              </div>
+            {% endif %}
+          </div>
+
+          <!-- Info Box -->
+          {% if lead.status == 'Issue in Lead' %}
+          <div class="alert alert-info d-flex align-items-center">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon me-2" width="24" height="24"
+                 viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none"
+                 stroke-linecap="round" stroke-linejoin="round">
+              <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+              <path d="M12 9v4" />
+              <path d="M12 16v.01" />
+            </svg>
+            <div>
+              <strong>Note:</strong> After saving changes, this lead’s status will automatically update from
+              <span class="badge bg-danger">Issue in Lead</span> to
+              <span class="badge bg-success">Updated</span>.
+            </div>
+          </div>
+          {% endif %}
+
+          <div class="form-footer">
+            <button type="submit" class="btn btn-primary">
+              <svg xmlns="http://www.w3.org/2000/svg" class="icon me-1" width="20" height="20"
+                   viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none"
+                   stroke-linecap="round" stroke-linejoin="round">
+                <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                <path d="M6 4h10l4 4v10a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2" />
+                <path d="M12 14m-2 0a2 2 0 1 0 4 0a2 2 0 1 0 -4 0" />
+                <path d="M14 4v4h-6v-4" />
+              </svg>
+              Update Lead
+            </button>
+            <a href="{{ url_for('dashboard') }}" class="btn btn-secondary ms-2">Cancel</a>
+          </div>
+        </form>
+      </div>
     </div>
+  </div>
 </div>
 {% endblock %}

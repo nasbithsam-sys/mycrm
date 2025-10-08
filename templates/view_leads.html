@@ -1,5 +1,4 @@
 {% extends "base.html" %}
-
 {% block title %}All Leads - AccBoost CRM{% endblock %}
 
 {% block content %}
@@ -43,9 +42,8 @@
 
         <!-- ➕ Add New Lead -->
         <a href="{{ url_for('add_lead') }}" class="btn btn-primary">
-          <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-plus" width="16" height="16"
-               viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round"
-               stroke-linejoin="round">
+          <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="16" height="16" viewBox="0 0 24 24" stroke-width="2"
+               stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
             <path stroke="none" d="M0 0h24v24H0z" fill="none" />
             <path d="M12 5l0 14" />
             <path d="M5 12l14 0" />
@@ -71,9 +69,10 @@
           <option value="Pending Outreach" {% if request.args.get('status') == 'Pending Outreach' %}selected{% endif %}>Pending Outreach</option>
           <option value="Texted / Call Done" {% if request.args.get('status') == 'Texted / Call Done' %}selected{% endif %}>Texted / Call Done</option>
           <option value="In Progress" {% if request.args.get('status') == 'In Progress' %}selected{% endif %}>In Progress</option>
-          <option value="Done" {% if request.args.get('status') == 'Done' %}selected{% endif %}>Done (Move to Closed Leads)</option>
+          <option value="Done" {% if request.args.get('status') == 'Done' %}selected{% endif %}>Done (Move to Closed)</option>
         </select>
       </div>
+
       <div class="col-md-4">
         <label class="form-label">Department</label>
         <select name="department" class="form-select" onchange="this.form.submit()">
@@ -83,6 +82,7 @@
           {% endfor %}
         </select>
       </div>
+
       <div class="col-md-4">
         <label class="form-label">&nbsp;</label>
         <div>
@@ -98,16 +98,14 @@
   <div class="card-header">
     <h3 class="card-title">All Active Leads</h3>
     <div class="card-actions">
-      <div class="text-muted">
-        Showing {{ leads|length }} lead{% if leads|length != 1 %}s{% endif %}
-      </div>
+      <div class="text-muted">Showing {{ leads|length }} lead{% if leads|length != 1 %}s{% endif %}</div>
     </div>
   </div>
-  
+
   <div class="card-body">
     {% if leads %}
     <div class="table-responsive">
-      <table class="table table-vcenter table-hover">
+      <table class="table table-vcenter table-hover align-middle">
         <thead>
           <tr>
             <th>ID</th>
@@ -125,13 +123,13 @@
           {% for lead in leads %}
           <tr>
             <td><span class="text-muted">#{{ lead.id }}</span></td>
-            <td><div class="font-weight-medium">{{ lead.customer_name }}</div></td>
+            <td><strong>{{ lead.customer_name }}</strong></td>
             <td>{{ lead.customer_number }}</td>
             <td><span class="badge bg-primary-lt">{{ lead.department }}</span></td>
             <td>{{ lead.added_by }}</td>
-            <td>{{ lead.created_at.strftime('%b %d, %Y') if lead.created_at else 'N/A' }}</td>
-            
-            <!-- ✅ Status Handling -->
+            <td class="text-muted small">{{ lead.created_at.strftime('%b %d, %Y') if lead.created_at else 'N/A' }}</td>
+
+            <!-- ✅ Status -->
             <td>
               {% if current_user.role in ['admin', 'processor'] %}
               <form method="POST" action="{{ url_for('update_status', lead_id=lead.id) }}">
@@ -139,7 +137,7 @@
                   <option value="Pending Outreach" {% if lead.status == "Pending Outreach" %}selected{% endif %}>Pending Outreach</option>
                   <option value="Texted / Call Done" {% if lead.status == "Texted / Call Done" %}selected{% endif %}>Texted / Call Done</option>
                   <option value="In Progress" {% if lead.status == "In Progress" %}selected{% endif %}>In Progress</option>
-                  <option value="Done" {% if lead.status == "Done" %}selected{% endif %}>Done (Move to Closed Leads)</option>
+                  <option value="Done" {% if lead.status == "Done" %}selected{% endif %}>Done (Move)</option>
                 </select>
                 <input type="hidden" name="origin" value="all_leads">
               </form>
@@ -151,7 +149,7 @@
             <!-- ✅ Cloudinary Attachment -->
             <td>
               {% if lead.attachment_filename %}
-                <a href="{{ lead.attachment_filename }}" target="_blank">View</a>
+                <a href="{{ lead.attachment_filename }}" target="_blank" class="text-primary">View</a>
               {% else %}
                 <span class="text-muted">No file</span>
               {% endif %}
@@ -159,12 +157,14 @@
 
             <!-- ✅ Actions -->
             <td>
-              <a href="#" class="btn btn-sm btn-outline-info" data-bs-toggle="modal" data-bs-target="#viewLead{{ lead.id }}">View</a>
-              {% if current_user.role == 'admin' %}
-              <form action="{{ url_for('delete_lead', lead_id=lead.id) }}" method="POST" style="display:inline;">
-                <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Delete lead #{{ lead.id }}?');">Delete</button>
-              </form>
-              {% endif %}
+              <div class="btn-group">
+                <a href="#" class="btn btn-sm btn-outline-info" data-bs-toggle="modal" data-bs-target="#viewLead{{ lead.id }}">View</a>
+                {% if current_user.role == 'admin' %}
+                <form action="{{ url_for('delete_lead', lead_id=lead.id) }}" method="POST" class="d-inline">
+                  <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Delete lead #{{ lead.id }}?');">Delete</button>
+                </form>
+                {% endif %}
+              </div>
             </td>
           </tr>
 
@@ -183,6 +183,14 @@
                   <p><strong>Status:</strong> {{ lead.status }}</p>
                   <p><strong>Added By:</strong> {{ lead.added_by }}</p>
                   <p><strong>Date:</strong> {{ lead.created_at.strftime('%b %d, %Y %H:%M') if lead.created_at else 'N/A' }}</p>
+                  {% if lead.attachment_filename %}
+                    <p><strong>Attachment:</strong>
+                      <a href="{{ lead.attachment_filename }}" target="_blank">Open File</a>
+                    </p>
+                  {% endif %}
+                </div>
+                <div class="modal-footer">
+                  <button class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
                 </div>
               </div>
             </div>
@@ -199,5 +207,4 @@
     {% endif %}
   </div>
 </div>
-
 {% endblock %}

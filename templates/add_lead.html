@@ -1,17 +1,17 @@
 {% extends "base.html" %}
-
-{% block title %}Add Lead - CRM{% endblock %}
+{% block title %}Add Lead - AccBoost CRM{% endblock %}
 
 {% block content %}
 <div class="page-header">
   <div class="row align-items-center">
     <div class="col">
       <h1 class="page-title">Add New Lead</h1>
-      <div class="text-muted mt-1">Create a new lead entry</div>
+      <div class="text-muted mt-1">Quickly create and assign new leads into the CRM system</div>
     </div>
     <div class="col-auto">
       <a href="{{ url_for('leads') }}" class="btn btn-outline-secondary">
-        <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="16" height="16" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+        <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="16" height="16" viewBox="0 0 24 24"
+             stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
           <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
           <path d="M9 5h-2a2 2 0 0 0 -2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-12a2 2 0 0 0 -2 -2h-2" />
           <path d="M9 5a2 2 0 0 1 2 -2h2a2 2 0 0 1 2 2v0a2 2 0 0 1 -2 2h-2a2 2 0 0 1 -2 -2z" />
@@ -24,33 +24,42 @@
   </div>
 </div>
 
-<!-- Add Lead Form -->
-<div class="card mb-4">
+<!-- Lead Form Card -->
+<div class="card mb-4 shadow-sm border-0">
   <div class="card-header">
-    <h3 class="card-title">Add New Lead</h3>
+    <h3 class="card-title">New Lead Entry Form</h3>
   </div>
+
   <div class="card-body">
     <form method="POST" action="{{ url_for('leads') }}" enctype="multipart/form-data">
+      <!-- Customer Information -->
       <div class="row">
         <div class="col-lg-6">
           <div class="mb-3">
             <label class="form-label required">Customer Name</label>
             <input type="text" class="form-control" name="customer_name" placeholder="Enter full name" required>
+            <small class="form-hint">Example: John Doe or Jane Smith</small>
           </div>
         </div>
         <div class="col-lg-6">
           <div class="mb-3">
             <label class="form-label required">Customer Number</label>
-            <input type="tel" class="form-control" name="customer_number" placeholder="Enter phone number" required>
+            <input type="tel" class="form-control" name="customer_number" placeholder="Enter contact number" required>
+            <small class="form-hint">Example: +1 234-567-8900</small>
           </div>
         </div>
       </div>
 
+      <!-- Context / Service -->
       <div class="mb-3">
         <label class="form-label required">Context / Service</label>
-        <textarea class="form-control" name="context_service" placeholder="Describe service requirements" rows="3" required></textarea>
+        <textarea class="form-control" name="context_service"
+                  placeholder="Describe the requested service or issue"
+                  rows="3" required></textarea>
+        <small class="form-hint">Be as specific as possible (e.g. AC installation, plumbing repair, etc.)</small>
       </div>
 
+      <!-- Department and Area -->
       <div class="row">
         <div class="col-lg-6">
           <div class="mb-3">
@@ -58,105 +67,97 @@
             <select class="form-select" name="department" required>
               <option value="">Select Department</option>
               {% for dept in departments %}
-              <option value="{{ dept }}">{{ dept }}</option>
+                <option value="{{ dept }}">{{ dept }}</option>
               {% endfor %}
             </select>
+            <small class="form-hint">Choose which department is responsible for this lead</small>
           </div>
         </div>
         <div class="col-lg-6">
           <div class="mb-3">
             <label class="form-label required">Main Area</label>
-            <input type="text" class="form-control" name="main_area" placeholder="Enter main area" required>
+            <input type="text" class="form-control" name="main_area" placeholder="Primary location" required>
           </div>
         </div>
       </div>
 
+      <!-- Optional Area Details -->
       <div class="row">
         <div class="col-lg-6">
           <div class="mb-3">
-            <label class="form-label">2nd Main Area</label>
-            <input type="text" class="form-control" name="second_main_area" placeholder="Optional">
+            <label class="form-label">2nd Main Area (Optional)</label>
+            <input type="text" class="form-control" name="second_main_area" placeholder="Secondary location if any">
           </div>
         </div>
         <div class="col-lg-6">
           <div class="mb-3">
             <label class="form-label">Sub Location</label>
-            <input type="text" class="form-control" name="sub_location" placeholder="Enter sub-location">
+            <input type="text" class="form-control" name="sub_location" placeholder="Specific street, floor, or block">
           </div>
         </div>
       </div>
 
+      <!-- Added By and File Upload -->
       <div class="row">
         <div class="col-lg-6">
           <div class="mb-3">
             <label class="form-label required">Added By</label>
             <input type="text" class="form-control" name="added_by" value="{{ current_user.username }}" readonly>
-            <small class="form-hint">Your name is automatically recorded</small>
+            <small class="form-hint text-muted">This field is automatically filled with your username.</small>
           </div>
         </div>
 
-        <!-- ✅ Modern Drag, Click, or Paste Upload -->
+        <!-- Interactive Drag & Drop File Upload -->
         <div class="col-lg-6">
           <div class="mb-3">
-            <label class="form-label">Attachment (Reference Photo / Doc)</label>
-
-            <!-- Hidden file input -->
+            <label class="form-label">Attachment (Reference Photo / Document)</label>
             <input type="file" id="attachment" name="attachment" accept="image/*,.pdf,.doc,.docx" hidden>
-
-            <!-- Drop zone -->
             <div id="drop-zone" class="border border-dashed border-2 rounded text-center p-4 bg-light" style="cursor:pointer;">
-              <div class="text-muted">
-                <i class="ti ti-cloud-upload fs-1 text-primary d-block mb-2"></i>
-                <p class="mb-1 fw-semibold text-dark">
-                  Drag & drop, <span class="text-primary">click</span>, or <span class="text-success">paste (Ctrl+V)</span> an image
-                </p>
-                <small class="text-muted">Allowed: JPG, PNG, GIF, PDF, DOC (max 16MB)</small>
-              </div>
+              <i class="ti ti-cloud-upload fs-1 text-primary d-block mb-2"></i>
+              <p class="fw-semibold text-dark mb-1">
+                Drag & Drop, <span class="text-primary">Click</span>, or <span class="text-success">Paste (Ctrl+V)</span> a file
+              </p>
+              <small class="text-muted">Allowed formats: JPG, PNG, GIF, PDF, DOC (Max size: 16 MB)</small>
             </div>
-
-            <!-- Preview -->
             <div id="preview-area" class="mt-3"></div>
           </div>
         </div>
       </div>
 
-      <div class="mt-4">
-        <div class="btn-list justify-content-end">
-          <button type="reset" class="btn btn-light">Reset Form</button>
-          <button type="submit" class="btn btn-primary">Add Lead</button>
-        </div>
+      <!-- Submit and Reset -->
+      <div class="mt-4 text-end">
+        <button type="reset" class="btn btn-light me-2">Reset Form</button>
+        <button type="submit" class="btn btn-primary">
+          <i class="ti ti-plus me-1"></i> Add Lead
+        </button>
       </div>
     </form>
   </div>
 </div>
 
-<!-- ✅ Drag, Drop, and Paste Script -->
+<!-- Attachment Preview and Paste Handler -->
 <script>
 const dropZone = document.getElementById('drop-zone');
 const fileInput = document.getElementById('attachment');
 const previewArea = document.getElementById('preview-area');
 
 dropZone.addEventListener('click', () => fileInput.click());
-
 dropZone.addEventListener('dragover', (e) => {
   e.preventDefault();
-  dropZone.classList.add('border-primary', 'bg-primary', 'bg-opacity-10');
+  dropZone.classList.add('border-primary','bg-primary','bg-opacity-10');
 });
-
 dropZone.addEventListener('dragleave', () => {
-  dropZone.classList.remove('border-primary', 'bg-primary', 'bg-opacity-10');
+  dropZone.classList.remove('border-primary','bg-primary','bg-opacity-10');
 });
-
 dropZone.addEventListener('drop', (e) => {
   e.preventDefault();
-  dropZone.classList.remove('border-primary', 'bg-primary', 'bg-opacity-10');
+  dropZone.classList.remove('border-primary','bg-primary','bg-opacity-10');
   const file = e.dataTransfer.files[0];
   if (file) {
     fileInput.files = e.dataTransfer.files;
     showPreview(file);
   }
 });
-
 fileInput.addEventListener('change', () => {
   const file = fileInput.files[0];
   if (file) showPreview(file);
@@ -164,26 +165,24 @@ fileInput.addEventListener('change', () => {
 
 function showPreview(file) {
   previewArea.innerHTML = '';
-  const allowedImages = ['image/png', 'image/jpeg', 'image/gif'];
-  const fileBox = document.createElement('div');
-  fileBox.classList.add('border', 'rounded', 'p-2', 'bg-white', 'shadow-sm');
-
+  const allowedImages = ['image/png','image/jpeg','image/gif'];
+  const box = document.createElement('div');
+  box.classList.add('border','rounded','p-2','bg-white','shadow-sm');
   if (allowedImages.includes(file.type)) {
     const img = document.createElement('img');
     img.src = URL.createObjectURL(file);
-    img.classList.add('img-fluid', 'rounded');
+    img.classList.add('img-fluid','rounded');
     img.style.maxWidth = '180px';
-    fileBox.appendChild(img);
+    box.appendChild(img);
   } else {
-    fileBox.innerHTML = `<div class="text-secondary"><i class="ti ti-file-description me-2"></i>${file.name}</div>`;
+    box.innerHTML = `<div class="text-secondary"><i class="ti ti-file-description me-2"></i>${file.name}</div>`;
   }
-
-  previewArea.appendChild(fileBox);
+  previewArea.appendChild(box);
 }
 
-// ✅ Copy & Paste (Ctrl+V) image support
-document.addEventListener('paste', (event) => {
-  const items = (event.clipboardData || event.originalEvent.clipboardData).items;
+// Paste support for images
+document.addEventListener('paste', (e) => {
+  const items = (e.clipboardData || e.originalEvent.clipboardData).items;
   for (const item of items) {
     if (item.type.indexOf('image') !== -1) {
       const file = item.getAsFile();
@@ -196,14 +195,9 @@ document.addEventListener('paste', (event) => {
     }
   }
 });
-
-// ✅ Subtle green flash effect when pasted
 function flashPasteEffect() {
-  dropZone.classList.add('bg-success', 'bg-opacity-25');
-  setTimeout(() => {
-    dropZone.classList.remove('bg-success', 'bg-opacity-25');
-  }, 400);
+  dropZone.classList.add('bg-success','bg-opacity-25');
+  setTimeout(() => dropZone.classList.remove('bg-success','bg-opacity-25'), 400);
 }
 </script>
-
 {% endblock %}

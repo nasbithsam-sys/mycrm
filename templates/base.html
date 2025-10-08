@@ -6,30 +6,65 @@
     <meta name="description" content="AccBoost CRM Dashboard" />
     <title>{% block title %}AccBoost CRM{% endblock %}</title>
 
-    <!-- Tabler CSS -->
+    <!-- ✅ Favicon -->
+    <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}">
+
+    <!-- ✅ Tabler CSS Framework -->
     <link href="https://cdn.jsdelivr.net/npm/@tabler/core@latest/dist/css/tabler.min.css" rel="stylesheet" />
     <link href="https://cdn.jsdelivr.net/npm/@tabler/core@latest/dist/css/tabler-flags.min.css" rel="stylesheet" />
     <link href="https://cdn.jsdelivr.net/npm/@tabler/core@latest/dist/css/tabler-payments.min.css" rel="stylesheet" />
     <link href="https://cdn.jsdelivr.net/npm/@tabler/core@latest/dist/css/tabler-vendors.min.css" rel="stylesheet" />
+
+    <!-- ✅ Custom Styles -->
+    <style>
+      /* Highlight active sidebar item */
+      .nav-item.active > .nav-link {
+        background-color: rgba(255, 255, 255, 0.1);
+        border-radius: 6px;
+        transition: 0.2s ease;
+      }
+
+      /* Sidebar scrollable layout */
+      .navbar-vertical {
+        position: sticky;
+        top: 0;
+        height: 100vh;
+        overflow-y: auto;
+      }
+
+      /* Optional hover effect */
+      .nav-item > .nav-link:hover {
+        background-color: rgba(255, 255, 255, 0.08);
+      }
+
+      /* Fade-out transition for flash messages */
+      .alert {
+        transition: opacity 0.5s ease-out;
+      }
+    </style>
   </head>
+
   <body>
     <div class="page">
-      <!-- Sidebar -->
+      <!-- ================= Sidebar ================= -->
       <aside class="navbar navbar-vertical navbar-expand-lg navbar-dark bg-dark">
         <div class="container-fluid">
+          <!-- Brand -->
           <h1 class="navbar-brand navbar-brand-autodark">
-            <a href="{{ url_for('dashboard') }}">
+            <a href="{{ url_for('dashboard') }}" class="text-white text-decoration-none">
               AccBoost CRM
             </a>
           </h1>
+
           <div class="navbar-nav navbar-collapse" id="sidebar-menu">
             <ul class="navbar-nav pt-lg-3">
-              
+
               <!-- Dashboard -->
-              <li class="nav-item">
+              <li class="nav-item {% if request.endpoint == 'dashboard' %}active{% endif %}">
                 <a class="nav-link" href="{{ url_for('dashboard') }}">
                   <span class="nav-link-icon d-md-none d-lg-inline-block">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24"
+                      stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
                       <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
                       <path d="M5 12l-2 0l9 -9l9 9l-2 0" />
                       <path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-7" />
@@ -41,10 +76,11 @@
               </li>
 
               <!-- Add Lead -->
-              <li class="nav-item">
+              <li class="nav-item {% if request.endpoint == 'add_lead' %}active{% endif %}">
                 <a class="nav-link" href="{{ url_for('add_lead') }}">
                   <span class="nav-link-icon d-md-none d-lg-inline-block">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24"
+                      stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
                       <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
                       <path d="M12 5l0 14" />
                       <path d="M5 12l14 0" />
@@ -55,10 +91,11 @@
               </li>
 
               <!-- My Leads -->
-              <li class="nav-item">
+              <li class="nav-item {% if request.endpoint == 'leads' %}active{% endif %}">
                 <a class="nav-link" href="{{ url_for('leads') }}">
                   <span class="nav-link-icon d-md-none d-lg-inline-block">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24"
+                      stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
                       <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
                       <path d="M9 5h-2a2 2 0 0 0 -2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-12a2 2 0 0 0 -2 -2h-2" />
                       <path d="M9 5a2 2 0 0 1 2 -2h2a2 2 0 0 1 2 2v0a2 2 0 0 1 -2 2h-2a2 2 0 0 1 -2 -2z" />
@@ -70,12 +107,13 @@
                 </a>
               </li>
 
-              <!-- All Leads -->
+              <!-- All Leads (Admin + Processor) -->
               {% if current_user.is_authenticated and current_user.role in ['admin', 'processor'] %}
-              <li class="nav-item">
+              <li class="nav-item {% if request.endpoint == 'view_leads' %}active{% endif %}">
                 <a class="nav-link" href="{{ url_for('view_leads') }}">
                   <span class="nav-link-icon d-md-none d-lg-inline-block">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24"
+                      stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
                       <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
                       <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" />
                       <path d="M21 12c-2.4 4 -5.4 6 -9 6c-3.6 0 -6.6 -2 -9 -6c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6" />
@@ -86,12 +124,13 @@
               </li>
               {% endif %}
 
-              <!-- Admin-only Links -->
+              <!-- Admin-only Section -->
               {% if current_user.is_authenticated and current_user.role == 'admin' %}
-              <li class="nav-item">
+              <li class="nav-item {% if request.endpoint == 'users' %}active{% endif %}">
                 <a class="nav-link" href="{{ url_for('users') }}">
                   <span class="nav-link-icon d-md-none d-lg-inline-block">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24"
+                      stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
                       <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
                       <path d="M9 7m-4 0a4 4 0 1 0 8 0a4 4 0 1 0 -8 0" />
                       <path d="M3 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" />
@@ -102,10 +141,12 @@
                   <span class="nav-link-title">Users</span>
                 </a>
               </li>
-              <li class="nav-item">
+
+              <li class="nav-item {% if request.endpoint == 'analytics' %}active{% endif %}">
                 <a class="nav-link" href="{{ url_for('analytics') }}">
                   <span class="nav-link-icon d-md-none d-lg-inline-block">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24"
+                      stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
                       <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
                       <path d="M3 12m0 1a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v6a1 1 0 0 1 -1 1h-4a1 1 0 0 1 -1 -1z" />
                       <path d="M9 8m0 1a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v10a1 1 0 0 1 -1 1h-4a1 1 0 0 1 -1 -1z" />
@@ -116,10 +157,12 @@
                   <span class="nav-link-title">Analytics</span>
                 </a>
               </li>
-              <li class="nav-item">
+
+              <li class="nav-item {% if request.endpoint == 'closed_leads' %}active{% endif %}">
                 <a class="nav-link" href="{{ url_for('closed_leads') }}">
                   <span class="nav-link-icon d-md-none d-lg-inline-block">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24"
+                      stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
                       <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
                       <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" />
                       <path d="M21 12c-2.4 4 -5.4 6 -9 6c-3.6 0 -6.6 -2 -9 -6c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6" />
@@ -129,25 +172,27 @@
                 </a>
               </li>
               {% endif %}
-
             </ul>
           </div>
         </div>
       </aside>
 
-      <!-- Main content -->
+      <!-- ================= Main Content Wrapper ================= -->
       <div class="page-wrapper">
-        <!-- Navbar -->
+        <!-- Header Navbar -->
         <header class="navbar navbar-expand-md navbar-light d-print-none">
           <div class="container-fluid">
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar-menu">
               <span class="navbar-toggler-icon"></span>
             </button>
+
             <div class="navbar-nav flex-row order-md-last ms-auto">
               {% if current_user.is_authenticated %}
               <div class="nav-item dropdown">
                 <a href="#" class="nav-link d-flex lh-1 text-reset p-0" data-bs-toggle="dropdown">
-                  <span class="avatar avatar-sm" style="background-image: url('https://ui-avatars.com/api/?name={{ current_user.username|urlencode }}&background=random')"></span>
+                  <span class="avatar avatar-sm"
+                        style="background-image: url('https://ui-avatars.com/api/?name={{ current_user.username|urlencode }}&background=random')">
+                  </span>
                   <div class="d-none d-xl-block ps-2">
                     <div>{{ current_user.username }}</div>
                     <div class="mt-1 small text-muted">{{ current_user.role|title }}</div>
@@ -165,31 +210,26 @@
           </div>
         </header>
 
-        <!-- Page Body -->
+        <!-- ================= Page Body ================= -->
         <div class="page-body">
           <div class="container-xl">
+
+            <!-- Flash Messages -->
             {% with messages = get_flashed_messages(with_categories=true) %}
               {% if messages %}
                 {% for category, message in messages %}
-                  <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible" role="alert">
-                    <div class="d-flex">
-                      <div>
-                        {% if category == 'success' %}
-                          ✅
-                        {% elif category == 'warning' %}
-                          ⚠️
-                        {% elif category == 'danger' or category == 'error' %}
-                          ❌
-                        {% endif %}
-                      </div>
-                      <div>{{ message }}</div>
+                  <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show" role="alert">
+                    <div class="d-flex align-items-center">
+                      {% if category == 'success' %}✅{% elif category == 'warning' %}⚠️{% elif category in ['danger', 'error'] %}❌{% endif %}
+                      <span class="ms-2">{{ message }}</span>
                     </div>
-                    <a class="btn-close" data-bs-dismiss="alert" aria-label="close"></a>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                   </div>
                 {% endfor %}
               {% endif %}
             {% endwith %}
-            
+
+            <!-- Page-Specific Content -->
             {% block content %}{% endblock %}
           </div>
         </div>
@@ -197,7 +237,18 @@
     </div>
 
     <!-- Tabler JS -->
-    <script src="https://cdn.jsdelivr.net/npm/@tabler/core@latest/dist/js/tabler.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tabler/core@latest/dist/js/tabler.min.js" defer></script>
+
+    <!-- Auto-dismiss alerts after 4 seconds -->
+    <script>
+      setTimeout(() => {
+        document.querySelectorAll('.alert').forEach(el => {
+          el.style.opacity = '0';
+          setTimeout(() => el.remove(), 500);
+        });
+      }, 4000);
+    </script>
+
     {% block scripts %}{% endblock %}
   </body>
 </html>

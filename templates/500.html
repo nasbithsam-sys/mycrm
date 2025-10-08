@@ -1,8 +1,48 @@
 {% extends "base.html" %}
+{% block title %}500 - Internal Server Error{% endblock %}
+
 {% block content %}
-<div class="container mt-5">
-  <h1>500 - Internal Server Error</h1>
-  <p>Something went wrong. Please try again later.</p>
-  <a href="{{ url_for('dashboard') }}" class="btn btn-primary">Go to Dashboard</a>
+<div class="d-flex align-items-center justify-content-center vh-100 text-center">
+  <div>
+    <!-- 💥 Animated Gear Icon -->
+    <div class="mb-4">
+      <span class="fs-1" id="gear">⚙️</span>
+    </div>
+
+    <h1 class="display-4 fw-bold text-danger">500</h1>
+    <h3 class="text-muted mb-3">Our servers took a coffee break ☕</h3>
+    <p class="text-secondary mb-4">
+      Something went wrong behind the scenes — but don’t worry, it’s not your fault.<br>
+      <small class="text-muted">We’re rebooting the system and getting things back on track.</small>
+    </p>
+
+    <a href="{{ url_for('dashboard') }}" class="btn btn-primary btn-lg shadow">
+      🚀 Back to Dashboard
+    </a>
+
+    <div class="mt-4 small text-muted">
+      <i>Tip:</i> Try refreshing in a few moments — even servers need a stretch break.
+    </div>
+  </div>
 </div>
+
+<!-- ✅ Smooth Animation -->
+<style>
+  #gear {
+    display: inline-block;
+    animation: spin 3s linear infinite;
+  }
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+
+  .btn-primary {
+    transition: all 0.3s ease;
+  }
+  .btn-primary:hover {
+    box-shadow: 0 0 15px rgba(255, 99, 71, 0.6);
+    transform: translateY(-2px);
+  }
+</style>
 {% endblock %}
