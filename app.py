@@ -635,14 +635,14 @@ def dashboard():
     today = date.today()
 
     # ---------------------------
-    # ADMIN DASHBOARD
+    # 🧭 ADMIN DASHBOARD
     # ---------------------------
     if current_user.role == "admin":
         total_leads = Lead.query.count()
         my_leads = Lead.query.filter_by(user_id=current_user.id).count()
         new_today = Lead.query.filter(cast(Lead.created_at, Date) == today).count()
 
-        # Department analytics
+        # Department analytics for chart
         dept_stats = (
             db.session.query(Lead.department, db.func.count(Lead.id))
             .group_by(Lead.department)
@@ -664,25 +664,25 @@ def dashboard():
         )
 
     # ---------------------------
-    # PROCESSOR DASHBOARD
+    # ⚙️ PROCESSOR DASHBOARD
     # ---------------------------
     elif current_user.role == "processor":
-        # Only show “New Leads” assigned for processing
-        new_leads = (
+        # Only show NEW LEADS
+        leads = (
             Lead.query.filter_by(status="New Lead")
             .order_by(Lead.created_at.desc())
             .all()
         )
 
-        total_new = len(new_leads)
-        my_leads = Lead.query.filter_by(assigned_to=current_user.id).count()
-        new_today = Lead.query.filter(
-            cast(Lead.created_at, Date) == today, Lead.status == "New Lead"
-        ).count()
+        total_new = len(leads)
+        my_leads = Lead.query.filter_by(user_id=current_user.id).count()
+        new_today = (
+            Lead.query.filter(cast(Lead.created_at, Date) == today).count()
+        )
 
         return render_template(
-            "dashboard.html",
-            new_leads=new_leads,
+            "dashboard_processor.html",
+            leads=leads,
             total_new=total_new,
             my_leads=my_leads,
             new_today=new_today,
@@ -692,37 +692,55 @@ def dashboard():
         )
 
     # ---------------------------
-    # USER DASHBOARD
+    # 👤 USER DASHBOARD
     # ---------------------------
     else:
-        today_leads = Lead.query.filter(
-            Lead.user_id == current_user.id,
-            cast(Lead.created_at, Date) == today
-        ).count()
+        today_leads = (
+            Lead.query.filter(
+                Lead.user_id == current_user.id,
+                cast(Lead.created_at, Date) == today,
+            ).count()
+        )
 
-        issue_leads = Lead.query.filter(
-            Lead.user_id == current_user.id,
-            Lead.status == 'Issue in Lead'
-        ).count()
+        issue_leads = (
+            Lead.query.filter(
+                Lead.user_id == current_user.id, Lead.status == "Issue in Lead"
+            ).count()
+        )
 
-        resolved_today = Lead.query.filter(
-            Lead.user_id == current_user.id,
-            cast(Lead.created_at, Date) == today,
-            Lead.status.in_(['Done', 'Texted / Call Done', 'Connected', 'Completed'])
-        ).count()
+        resolved_today = (
+            Lead.query.filter(
+                Lead.user_id == current_user.id,
+                cast(Lead.created_at, Date) == today,
+                Lead.status.in_(
+                    ["Done", "Texted / Call Done", "Connected", "Completed"]
+                ),
+            ).count()
+        )
 
-        today_leads_list = Lead.query.filter(
-            Lead.user_id == current_user.id,
-            cast(Lead.created_at, Date) == today
-        ).order_by(Lead.created_at.desc()).all()
+        today_leads_list = (
+            Lead.query.filter(
+                Lead.user_id == current_user.id,
+                cast(Lead.created_at, Date) == today,
+            )
+            .order_by(Lead.created_at.desc())
+            .all()
+        )
 
-        issue_leads_list = Lead.query.filter(
-            Lead.user_id == current_user.id,
-            Lead.status == 'Issue in Lead'
-        ).order_by(Lead.created_at.desc()).all()
+        issue_leads_list = (
+            Lead.query.filter(
+                Lead.user_id == current_user.id, Lead.status == "Issue in Lead"
+            )
+            .order_by(Lead.created_at.desc())
+            .all()
+        )
 
-        recent_leads = Lead.query.filter_by(user_id=current_user.id)\
-                                 .order_by(Lead.created_at.desc()).limit(5).all()
+        recent_leads = (
+            Lead.query.filter_by(user_id=current_user.id)
+            .order_by(Lead.created_at.desc())
+            .limit(5)
+            .all()
+        )
 
         return render_template(
             "dashboard.html",

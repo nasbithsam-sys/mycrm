@@ -32,7 +32,7 @@
             <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
             <path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2 -2v-2" />
             <path d="M7 11l5 5l5 -5" />
-            <path d="M12 4l0 12" />
+            <path d="M12 4v12" />
           </svg>
           Export
         </button>
@@ -51,8 +51,9 @@
         <div class="row align-items-center">
           <div class="col-auto">
             <span class="avatar bg-primary text-white">
-              <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24"
-                   stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+              <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24"
+                   viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none"
+                   stroke-linecap="round" stroke-linejoin="round">
                 <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
                 <path d="M9 7a4 4 0 1 0 8 0a4 4 0 0 0 -8 0" />
                 <path d="M3 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" />
@@ -103,8 +104,9 @@
         <div class="row align-items-center">
           <div class="col-auto">
             <span class="avatar bg-info text-white">
-              <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24"
-                   stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+              <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24"
+                   viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none"
+                   stroke-linecap="round" stroke-linejoin="round">
                 <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
                 <path d="M12 7a4 4 0 1 0 8 0a4 4 0 0 0 -8 0" />
                 <path d="M6 21v-2a4 4 0 0 1 4 -4h8" />
@@ -130,8 +132,9 @@
         <div class="row align-items-center">
           <div class="col-auto">
             <span class="avatar bg-warning text-white">
-              <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24"
-                   stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+              <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24"
+                   viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none"
+                   stroke-linecap="round" stroke-linejoin="round">
                 <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
                 <path d="M12 7a4 4 0 1 0 8 0a4 4 0 0 0 -8 0" />
               </svg>
@@ -187,6 +190,13 @@
                 <div>
                   <div class="fw-bold">{{ user.username }}</div>
                   <div class="text-muted small">ID: {{ user.id }}</div>
+                  {% if user.otp_secret %}
+                  <div class="text-muted small mt-1">
+                    <span class="badge bg-light text-dark">
+                      🔑 OTP Secret: <code>{{ user.otp_secret }}</code>
+                    </span>
+                  </div>
+                  {% endif %}
                 </div>
               </div>
             </td>
@@ -259,6 +269,7 @@
   </div>
   <div class="card-body text-center text-muted">
     <p>📊 User activity tracking & analytics coming soon...</p>
+    <p class="small text-muted">Until then, enjoy your clean, organized team overview 💼</p>
   </div>
 </div>
 {% endblock %}
