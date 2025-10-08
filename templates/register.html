@@ -24,6 +24,10 @@
         font-weight: 600;
         color: #206bc4;
       }
+      .form-selectgroup-item:hover {
+        background-color: #f1f5ff;
+        transition: background 0.2s ease-in-out;
+      }
     </style>
   </head>
 
@@ -39,31 +43,23 @@
         <div class="card card-md">
           <div class="card-body">
             <h2 class="h2 text-center mb-4">Create an Account</h2>
+            <p class="text-center text-muted small mb-4">
+              Choose your account type carefully — each role has different privileges 🚀
+            </p>
 
             <!-- Flash Messages -->
             {% with messages = get_flashed_messages(with_categories=true) %}
               {% if messages %}
                 {% for category, message in messages %}
                   <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible" role="alert">
-                    <div class="d-flex">
+                    <div class="d-flex align-items-center">
                       <div class="me-2">
                         {% if category == 'success' %}
-                          <svg xmlns="http://www.w3.org/2000/svg" class="icon alert-icon text-success" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                            <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-                            <path d="M5 12l5 5l10 -10" />
-                          </svg>
+                          ✅
                         {% elif category == 'warning' %}
-                          <svg xmlns="http://www.w3.org/2000/svg" class="icon alert-icon text-warning" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                            <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-                            <path d="M12 9v4" />
-                            <path d="M12 16h.01" />
-                          </svg>
+                          ⚠️
                         {% else %}
-                          <svg xmlns="http://www.w3.org/2000/svg" class="icon alert-icon text-danger" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                            <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-                            <path d="M12 9v4" />
-                            <path d="M12 16v.01" />
-                          </svg>
+                          ❌
                         {% endif %}
                       </div>
                       <div>{{ message }}</div>
@@ -76,6 +72,7 @@
 
             <!-- Registration Form -->
             <form method="POST" action="{{ url_for('register') }}" autocomplete="off">
+              <!-- Username -->
               <div class="mb-3">
                 <label class="form-label required">Username</label>
                 <div class="input-group input-group-flat">
@@ -91,6 +88,7 @@
                 </div>
               </div>
 
+              <!-- Password -->
               <div class="mb-3">
                 <label class="form-label required">Password</label>
                 <div class="input-group input-group-flat">
@@ -107,30 +105,44 @@
                 </div>
               </div>
 
-              <!-- Account Type Selection -->
+              <!-- Account Type Selection (User, Processor, Admin) -->
               <div class="mb-3">
                 <label class="form-label required">Account Type</label>
                 <div class="row g-2">
-                  <div class="col-6">
+                  <div class="col-md-4 col-12">
                     <label class="form-selectgroup-item">
                       <input type="radio" name="role" value="user" class="form-selectgroup-input" checked>
                       <span class="form-selectgroup-label d-flex align-items-center p-3">
                         <span class="form-selectgroup-check me-3"></span>
                         <span>
                           <strong>User</strong><br>
-                          <span class="text-muted small">Can manage own leads</span>
+                          <span class="text-muted small">Can manage their own leads</span>
                         </span>
                       </span>
                     </label>
                   </div>
-                  <div class="col-6">
+
+                  <div class="col-md-4 col-12">
+                    <label class="form-selectgroup-item">
+                      <input type="radio" name="role" value="processor" class="form-selectgroup-input">
+                      <span class="form-selectgroup-label d-flex align-items-center p-3">
+                        <span class="form-selectgroup-check me-3"></span>
+                        <span>
+                          <strong>Processor</strong><br>
+                          <span class="text-muted small">Handles new incoming leads only</span>
+                        </span>
+                      </span>
+                    </label>
+                  </div>
+
+                  <div class="col-md-4 col-12">
                     <label class="form-selectgroup-item">
                       <input type="radio" name="role" value="admin" class="form-selectgroup-input">
                       <span class="form-selectgroup-label d-flex align-items-center p-3">
                         <span class="form-selectgroup-check me-3"></span>
                         <span>
-                          <strong>Administrator</strong><br>
-                          <span class="text-muted small">Full access and user control</span>
+                          <strong>Admin</strong><br>
+                          <span class="text-muted small">Full system access & analytics</span>
                         </span>
                       </span>
                     </label>
@@ -138,6 +150,7 @@
                 </div>
               </div>
 
+              <!-- Submit -->
               <div class="form-footer">
                 <button type="submit" class="btn btn-primary w-100">
                   <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-user-plus" width="16" height="16" viewBox="0 0 24 24"
@@ -159,8 +172,6 @@
           Already have an account?
           <a href="{{ url_for('login') }}" class="text-primary text-decoration-none">Sign in</a>
         </div>
-      </div>
-    </div>
 
     <!-- Tabler JS -->
     <script src="https://cdn.jsdelivr.net/npm/@tabler/core@latest/dist/js/tabler.min.js"></script>

@@ -635,14 +635,19 @@ def dashboard():
     today = date.today()
 
     # ---------------------------
-    # Admin Dashboard
+    # ADMIN DASHBOARD
     # ---------------------------
     if current_user.role == "admin":
         total_leads = Lead.query.count()
         my_leads = Lead.query.filter_by(user_id=current_user.id).count()
         new_today = Lead.query.filter(cast(Lead.created_at, Date) == today).count()
 
-        dept_stats = db.session.query(Lead.department, db.func.count(Lead.id)).group_by(Lead.department).all()
+        # Department analytics
+        dept_stats = (
+            db.session.query(Lead.department, db.func.count(Lead.id))
+            .group_by(Lead.department)
+            .all()
+        )
         dept_labels = [d[0] for d in dept_stats]
         dept_counts = [d[1] for d in dept_stats]
 
@@ -654,26 +659,40 @@ def dashboard():
             dept_labels=dept_labels,
             dept_counts=dept_counts,
             now=datetime.now(),
-            is_admin=True
+            is_admin=True,
+            is_processor=False
         )
 
     # ---------------------------
-    # Processor Dashboard
+    # PROCESSOR DASHBOARD
     # ---------------------------
     elif current_user.role == "processor":
-        my_leads = Lead.query.filter_by(user_id=current_user.id).count()
-        new_today = Lead.query.filter(cast(Lead.created_at, Date) == today).count()
+        # Only show “New Leads” assigned for processing
+        new_leads = (
+            Lead.query.filter_by(status="New Lead")
+            .order_by(Lead.created_at.desc())
+            .all()
+        )
+
+        total_new = len(new_leads)
+        my_leads = Lead.query.filter_by(assigned_to=current_user.id).count()
+        new_today = Lead.query.filter(
+            cast(Lead.created_at, Date) == today, Lead.status == "New Lead"
+        ).count()
 
         return render_template(
             "dashboard.html",
+            new_leads=new_leads,
+            total_new=total_new,
             my_leads=my_leads,
             new_today=new_today,
             now=datetime.now(),
+            is_admin=False,
             is_processor=True
         )
 
     # ---------------------------
-    # User Dashboard
+    # USER DASHBOARD
     # ---------------------------
     else:
         today_leads = Lead.query.filter(
@@ -702,7 +721,8 @@ def dashboard():
             Lead.status == 'Issue in Lead'
         ).order_by(Lead.created_at.desc()).all()
 
-        recent_leads = Lead.query.filter_by(user_id=current_user.id).order_by(Lead.created_at.desc()).limit(5).all()
+        recent_leads = Lead.query.filter_by(user_id=current_user.id)\
+                                 .order_by(Lead.created_at.desc()).limit(5).all()
 
         return render_template(
             "dashboard.html",
@@ -713,7 +733,8 @@ def dashboard():
             issue_leads_list=issue_leads_list,
             recent_leads=recent_leads,
             now=datetime.now(),
-            is_admin=False
+            is_admin=False,
+            is_processor=False
         )
 
 # ---------------------------
