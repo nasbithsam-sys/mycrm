@@ -123,6 +123,16 @@ def processor_or_admin_required(view):
         return view(*args, **kwargs)
     return wrapped
 
+def admin_required(view):
+    @wraps(view)
+    def wrapped(*args, **kwargs):
+        if not current_user.is_authenticated or current_user.role != "admin":
+            flash("❌ Access denied. Admins only.", "danger")
+            return redirect(url_for("dashboard"))
+        return view(*args, **kwargs)
+    return wrapped
+
+
 # ---------------------------
 # Models
 # ---------------------------
@@ -583,6 +593,7 @@ from reportlab.pdfgen import canvas
 
 @app.route("/closed_leads")
 @login_required
+@admin_required
 def closed_leads():
     from datetime import datetime, timedelta
 
@@ -768,6 +779,7 @@ def uploaded_file(filename):
 # ---------------------------
 @app.route("/export_closed_leads")
 @login_required
+@admin_required
 def export_closed_leads():
     from datetime import datetime
     import io, csv, pandas as pd
@@ -905,7 +917,7 @@ def reopen_lead(lead_id):
 @admin_required
 def delete_lead_permanent(lead_id):
     lead = Lead.query.get_or_404(lead_id)
-    if lead.attachment_filename:
+    if lead.attachment_filename and not lead.attachment_filename.startswith("http"):
         file_path = os.path.join(app.config['UPLOAD_FOLDER'], lead.attachment_filename)
         if os.path.exists(file_path):
             os.remove(file_path)
@@ -919,7 +931,7 @@ def delete_lead_permanent(lead_id):
 @admin_required
 def delete_lead(lead_id):
     lead = Lead.query.get_or_404(lead_id)
-    if lead.attachment_filename:
+    if lead.attachment_filename and not lead.attachment_filename.startswith("http"):
         file_path = os.path.join(app.config['UPLOAD_FOLDER'], lead.attachment_filename)
         if os.path.exists(file_path):
             os.remove(file_path)

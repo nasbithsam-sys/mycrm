@@ -9,11 +9,16 @@
       <h1 class="page-title">All Leads</h1>
       <div class="text-muted mt-1">
         Manage all active leads 
-        {% if current_user.role == 'admin' %}(Admin Access){% elif current_user.role == 'processor' %}(Processor Access){% endif %}
+        {% if current_user.role == 'admin' %}
+          (Admin Access)
+        {% elif current_user.role == 'processor' %}
+          (Processor Access)
+        {% endif %}
       </div>
     </div>
     <div class="col-auto">
       <div class="btn-list">
+
         <!-- ✅ Export Dropdown — Admin Only -->
         {% if current_user.role == 'admin' %}
         <div class="dropdown">
@@ -126,8 +131,8 @@
             <td>{{ lead.added_by }}</td>
             <td>{{ lead.created_at.strftime('%b %d, %Y') if lead.created_at else 'N/A' }}</td>
             
+            <!-- ✅ Status Handling -->
             <td>
-              <!-- Admin or Processor Status Update -->
               {% if current_user.role in ['admin', 'processor'] %}
               <form method="POST" action="{{ url_for('update_status', lead_id=lead.id) }}">
                 <select name="status" class="form-select form-select-sm" onchange="this.form.submit()">
@@ -143,14 +148,16 @@
               {% endif %}
             </td>
 
+            <!-- ✅ Cloudinary Attachment -->
             <td>
               {% if lead.attachment_filename %}
-                <a href="{{ url_for('uploaded_file', filename=lead.attachment_filename) }}" target="_blank">View</a>
+                <a href="{{ lead.attachment_filename }}" target="_blank">View</a>
               {% else %}
                 <span class="text-muted">No file</span>
               {% endif %}
             </td>
 
+            <!-- ✅ Actions -->
             <td>
               <a href="#" class="btn btn-sm btn-outline-info" data-bs-toggle="modal" data-bs-target="#viewLead{{ lead.id }}">View</a>
               {% if current_user.role == 'admin' %}
