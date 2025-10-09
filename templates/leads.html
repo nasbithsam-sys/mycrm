@@ -15,11 +15,11 @@
       </div>
     </div>
     {% if can_add %}
-    <div class="col-auto ms-auto">
-      <a href="{{ url_for('add_lead') }}" class="btn btn-primary">
-        <i class="ti ti-plus me-1"></i> Add New Lead
-      </a>
-    </div>
+      <div class="col-auto ms-auto">
+        <a href="{{ url_for('add_lead') }}" class="btn btn-primary">
+          <i class="ti ti-plus me-1"></i> Add New Lead
+        </a>
+      </div>
     {% endif %}
   </div>
 </div>
@@ -27,127 +27,206 @@
 <div class="card shadow-sm">
   <div class="card-header d-flex justify-content-between align-items-center">
     <h3 class="card-title fw-semibold">
-      {% if triage_mode %}New Leads{% else %}All My Leads{% endif %}
+      {% if triage_mode %}
+        New Leads
+      {% else %}
+        All My Leads
+      {% endif %}
     </h3>
-    <span class="badge bg-blue-lt text-blue fw-semibold">Showing {{ leads|length }}</span>
+    <span class="badge bg-blue-lt text-blue fw-semibold">
+      Showing {{ leads|length }}
+    </span>
   </div>
 
   <div class="card-body border-top">
     {% if leads %}
-    <div class="table-responsive">
-      <table class="table table-vcenter table-hover align-middle">
-        <thead class="table-light">
-          <tr>
-            <th>ID</th>
-            <th>Client</th>
-            <th>Contact</th>
-            <th>Department</th>
-            <th>Added By</th>
-            <th>Date</th>
-            <th>Status</th>
-            <th class="text-end">Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for lead in leads %}
-          <tr>
-            <td><span class="text-muted">#{{ lead.id }}</span></td>
-            <td class="fw-semibold">{{ lead.customer_name }}</td>
-            <td>{{ lead.customer_number }}</td>
-            <td><span class="badge bg-blue-lt text-blue">{{ lead.department }}</span></td>
-            <td>{{ lead.added_by }}</td>
-            <td class="text-muted small">{{ lead.created_at.strftime('%b %d, %Y') if lead.created_at else 'N/A' }}</td>
+      <div class="table-responsive">
+        <table class="table table-vcenter table-hover align-middle">
+          <thead class="table-light">
+            <tr>
+              <th>ID</th>
+              <th>Client</th>
+              <th>Contact</th>
+              <th>Department</th>
+              <th>Added By</th>
+              <th>Date</th>
+              <th>Status</th>
+              <th class="text-end">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for lead in leads %}
+              <tr>
+                <td><span class="text-muted">#{{ lead.id }}</span></td>
+                <td class="fw-semibold">{{ lead.customer_name }}</td>
+                <td>{{ lead.customer_number }}</td>
+                <td>
+                  <span class="badge bg-blue-lt text-blue">
+                    {{ lead.department }}
+                  </span>
+                </td>
+                <td>
+                  {% if current_user.role == 'processor' %}
+                    —
+                  {% else %}
+                     {{ lead.added_by }}
+                  {% endif %}
+                </td>     
+                <td class="text-muted small">
+                  {{ lead.created_at.strftime('%b %d, %Y') if lead.created_at else 'N/A' }}
+                </td>
 
-            <!-- STATUS -->
-            <td>
-              {% set color_map = {
-                'New Lead': 'bg-primary text-white',
-                'Issue in Lead': 'bg-danger text-white',
-                'Updated': 'bg-success text-white',
-                'Done': 'bg-secondary text-white'
-              } %}
+                <!-- ✅ STATUS -->
+                <td>
+                  {% set color_map = {
+                    'New Lead': 'status-blue',
+                    'Issue in Lead': 'status-red',
+                    'Updated': 'status-yellow',
+                    'Done': 'status-gray'
+                  } %}
 
-              {% if current_user.role in ['admin','processor'] and lead.status not in ['Updated','Done'] %}
-                <form method="POST" action="{{ url_for('update_status', lead_id=lead.id) }}" class="m-0">
-                  <input type="hidden" name="origin" value="my_leads">
-                  <select name="status" class="form-select form-select-sm status-dropdown"
-                          onchange="this.form.submit()">
-                   <option value="New Lead" {% if lead.status == 'New Lead' %}selected{% endif %}>New Lead</option>
-                   <option value="Issue in Lead" {% if lead.status == 'Issue in Lead' %}selected{% endif %}>Issue in Lead</option>
-                   <option value="Done">Done (Move to All Leads)</option>
-                </select>
-                </form>
-              {% else %}
-                <span class="badge {{ color_map.get(lead.status,'bg-light text-dark') }}">{{ lead.status }}</span>
-              {% endif %}
-            </td>
+                  {% if current_user.role in ['admin','processor'] and lead.status != 'Done' %}
+                    <form method="POST"
+                          action="{{ url_for('update_status', lead_id=lead.id) }}"
+                          class="m-0">
 
-            <!-- ACTIONS -->
-            <td class="text-end">
-              <div class="btn-list flex-nowrap">
-                <a href="#" class="btn btn-sm btn-outline-info" data-bs-toggle="modal" data-bs-target="#viewLead{{ lead.id }}">
-                  <i class="ti ti-eye"></i> View
-                </a>
-                {% if current_user.role == 'admin' or current_user.username == lead.added_by %}
-                  <a href="{{ url_for('edit_lead', lead_id=lead.id) }}" class="btn btn-sm btn-outline-warning">
-                    <i class="ti ti-edit"></i> Edit
-                  </a>
-                {% endif %}
-              </div>
-            </td>
-          </tr>
+                      <input type="hidden" name="origin" value="my_leads">
 
-          <!-- MODAL -->
-          <div class="modal modal-blur fade" id="viewLead{{ lead.id }}" tabindex="-1" aria-hidden="true">
-            <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
-              <div class="modal-content">
-                <div class="modal-header">
-                  <h5 class="modal-title">Lead Details: {{ lead.customer_name }}</h5>
-                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                  <dl class="row">
-                    <dt class="col-sm-4">Contact</dt><dd class="col-sm-8">{{ lead.customer_number }}</dd>
-                    <dt class="col-sm-4">Department</dt><dd class="col-sm-8">{{ lead.department }}</dd>
-                    <dt class="col-sm-4">Service</dt><dd class="col-sm-8">{{ lead.context_service or 'N/A' }}</dd>
-                    <dt class="col-sm-4">Status</dt>
-                    <dd class="col-sm-8">
-                      <span class="badge {{ color_map.get(lead.status,'bg-light text-dark') }}">{{ lead.status }}</span>
-                    </dd>
-                    <dt class="col-sm-4">Added By</dt><dd class="col-sm-8">{{ lead.added_by }}</dd>
-                    <dt class="col-sm-4">Created At</dt>
-                    <dd class="col-sm-8">{{ lead.created_at.strftime('%b %d, %Y %I:%M %p') if lead.created_at else 'N/A' }}</dd>
-                    {% if lead.attachment_filename %}
-                    <dt class="col-sm-4">Attachment</dt>
-                    <dd class="col-sm-8"><a href="{{ lead.attachment_filename }}" target="_blank" class="link-primary">Open File</a></dd>
+                      <!-- ✅ Dropdown includes Updated -->
+                      <select name="status"
+                              class="status-dropdown {{ color_map.get(lead.status, '') }}"
+                              onchange="this.form.submit()">
+                        <option value="New Lead"
+                                {% if lead.status == 'New Lead' %}selected{% endif %}>
+                          New Lead
+                        </option>
+                        <option value="Issue in Lead"
+                                {% if lead.status == 'Issue in Lead' %}selected{% endif %}>
+                          Issue in Lead
+                        </option>
+                        <option value="Updated"
+                                {% if lead.status == 'Updated' %}selected{% endif %}>
+                          Updated
+                        </option>
+                        <option value="Done">
+                          Done (Move to All Leads)
+                        </option>
+                      </select>
+                    </form>
+                  {% else %}
+                    <!-- ✅ Unified badge style for non-editable -->
+                    <span class="status-dropdown {{ color_map.get(lead.status, 'status-gray') }}">
+                      {{ lead.status }}
+                    </span>
+                  {% endif %}
+                </td>
+
+                <!-- ACTIONS -->
+                <td class="text-end">
+                  <div class="btn-list flex-nowrap">
+                    <a href="#"
+                       class="btn btn-sm btn-outline-info"
+                       data-bs-toggle="modal"
+                       data-bs-target="#viewLead{{ lead.id }}">
+                      <i class="ti ti-eye"></i> View
+                    </a>
+                    {% if current_user.role == 'admin' or current_user.username == lead.added_by %}
+                      <a href="{{ url_for('edit_lead', lead_id=lead.id) }}"
+                         class="btn btn-sm btn-outline-warning">
+                        <i class="ti ti-edit"></i> Edit
+                      </a>
                     {% endif %}
-                  </dl>
-                </div>
-                <div class="modal-footer">
-                  <button type="button" class="btn me-auto" data-bs-dismiss="modal">Close</button>
+                  </div>
+                </td>
+              </tr>
+
+              <!-- MODAL -->
+              <div class="modal modal-blur fade"
+                   id="viewLead{{ lead.id }}"
+                   tabindex="-1"
+                   aria-hidden="true">
+                <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
+                  <div class="modal-content">
+                    <div class="modal-header">
+                      <h5 class="modal-title">
+                        Lead Details: {{ lead.customer_name }}
+                      </h5>
+                      <button type="button"
+                              class="btn-close"
+                              data-bs-dismiss="modal"
+                              aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                      <dl class="row">
+                        <dt class="col-sm-4">Contact</dt>
+                        <dd class="col-sm-8">{{ lead.customer_number }}</dd>
+
+                        <dt class="col-sm-4">Department</dt>
+                        <dd class="col-sm-8">{{ lead.department }}</dd>
+
+                        <dt class="col-sm-4">Service</dt>
+                        <dd class="col-sm-8">{{ lead.context_service or 'N/A' }}</dd>
+
+                        <dt class="col-sm-4">Status</dt>
+                        <dd class="col-sm-8">
+                          <span class="status-dropdown {{ color_map.get(lead.status, 'status-gray') }}">
+                            {{ lead.status }}
+                          </span>
+                        </dd>
+
+                        <dt class="col-sm-4">Added By</dt>
+                        <dd class="col-sm-8">
+                          {% if current_user.role == 'processor' %}
+                            —
+                          {% else %}
+                            {{ lead.added_by }}
+                          {% endif %}    
+                        </dd>
+                        <dt class="col-sm-4">Created At</dt>
+                        <dd class="col-sm-8">
+                          {{ lead.created_at.strftime('%b %d, %Y %I:%M %p') if lead.created_at else 'N/A' }}
+                        </dd>
+
+                        {% if lead.attachment_filename %}
+                          <dt class="col-sm-4">Attachment</dt>
+                          <dd class="col-sm-8">
+                            <a href="{{ lead.attachment_filename }}"
+                               target="_blank"
+                               class="link-primary">
+                              Open File
+                            </a>
+                          </dd>
+                        {% endif %}
+                      </dl>
+                    </div>
+                    <div class="modal-footer">
+                      <button type="button"
+                              class="btn me-auto"
+                              data-bs-dismiss="modal">
+                        Close
+                      </button>
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div>
-          </div>
-
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
-    {% else %}
-    <div class="empty my-5 text-center">
-      <div class="empty-icon mb-3">
-        <i class="ti ti-inbox fs-1 text-muted"></i>
+            {% endfor %}
+          </tbody>
+        </table>
       </div>
-      <p class="empty-title">No leads yet</p>
-      <p class="empty-subtitle text-muted">
-        {% if triage_mode %}
-          Nothing to triage right now.
-        {% else %}
-          You haven’t added any leads yet.
-        {% endif %}
-      </p>
-    </div>
+    {% else %}
+      <div class="empty my-5 text-center">
+        <div class="empty-icon mb-3">
+          <i class="ti ti-inbox fs-1 text-muted"></i>
+        </div>
+        <p class="empty-title">No leads yet</p>
+        <p class="empty-subtitle text-muted">
+          {% if triage_mode %}
+            Nothing to triage right now.
+          {% else %}
+            You haven’t added any leads yet.
+          {% endif %}
+        </p>
+      </div>
     {% endif %}
   </div>
 </div>

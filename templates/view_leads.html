@@ -109,7 +109,13 @@
             <td><strong>{{ lead.customer_name }}</strong></td>
             <td>{{ lead.customer_number }}</td>
             <td><span class="badge bg-primary-lt">{{ lead.department }}</span></td>
-            <td>{{ lead.added_by }}</td>
+            <td>
+              {% if current_user.role == 'processor' %}
+                —
+              {% else %}
+                {{ lead.added_by }}
+              {% endif %}
+            </td>     
             <td class="text-muted small">{{ lead.created_at.strftime('%b %d, %Y') if lead.created_at else 'N/A' }}</td>
 
             <!-- ✅ Editable Status for Admin & Processor -->
@@ -163,7 +169,13 @@
                   <p><strong>Department:</strong> {{ lead.department }}</p>
                   <p><strong>Service:</strong> {{ lead.context_service or 'N/A' }}</p>
                   <p><strong>Status:</strong> {{ lead.status }}</p>
-                  <p><strong>Added By:</strong> {{ lead.added_by }}</p>
+                  <p><strong>Added By:</strong>
+                    {% if current_user.role == 'processor' %}
+                      —
+                    {% else %}
+                      {{ lead.added_by }}
+                    {% endif %}
+                  </p>     
                   <p><strong>Date:</strong> {{ lead.created_at.strftime('%b %d, %Y %H:%M') if lead.created_at else 'N/A' }}</p>
                   {% if lead.attachment_filename %}
                     <p><strong>Attachment:</strong> <a href="{{ lead.attachment_filename }}" target="_blank">Open File</a></p>

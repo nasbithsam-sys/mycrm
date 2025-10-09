@@ -385,15 +385,15 @@ def leads():
 
     if current_user.role in ("admin", "processor"):
        leads_list = (
-           Lead.query.filter(Lead.status.in_(["New Lead", "Issue in Lead"]))
-           .order_by(Lead.status.desc(), Lead.created_at.desc())
+           Lead.query.filter(Lead.status.in_(["New Lead", "Issue in Lead", "Updated"]))
+           .order_by(Lead.created_at.desc())  # ✅ only sort by created_at
            .all()
         )
     else:
        leads_list = (
            Lead.query.filter_by(user_id=current_user.id)
            .filter(Lead.status.in_(["New Lead", "Issue in Lead", "Updated"]))
-           .order_by(Lead.created_at.desc())
+           .order_by(Lead.created_at.desc())  # ✅ only sort by created_at
            .all()
         )
 
@@ -485,10 +485,11 @@ def edit_lead(lead_id):
 
         # Always mark status as "Updated" after edit
         lead.status = "Updated"
+        print(f"DEBUG: Lead {lead.id} updated by {current_user.username}, new status = {lead.status}")
         db.session.commit()
 
         flash("✅ Lead updated successfully and marked as 'Updated'.", "success")
-        return redirect(url_for("dashboard"))
+        return redirect(url_for("leads"))
 
     return render_template("edit_lead.html", lead=lead, departments=DEPARTMENTS)
 
