@@ -632,6 +632,36 @@ import csv
 import pandas as pd
 from reportlab.pdfgen import canvas
 
+@app.route("/bulk_update_status", methods=["POST"])
+@login_required
+@admin_required
+def bulk_update_status():
+    lead_ids = request.form.getlist("lead_ids")
+    new_status = request.form.get("new_status")
+
+    if not lead_ids:
+        flash("⚠️ No leads selected.", "warning")
+        return redirect(request.referrer)
+
+    if not new_status:
+        flash("⚠️ Please select a status.", "warning")
+        return redirect(request.referrer)
+
+    leads = Lead.query.filter(Lead.id.in_(lead_ids)).all()
+    for lead in leads:
+        lead.status = new_status
+        if new_status == "Done":
+            lead.closed_at = datetime.utcnow()
+            lead.closed_by = current_user.id
+        else:
+            lead.closed_at = None
+            lead.closed_by = None
+
+    db.session.commit()
+    flash(f"✅ {len(leads)} leads updated to '{new_status}' successfully!", "success")
+    return redirect(request.referrer)
+
+
 @app.route("/closed_leads")
 @login_required
 @admin_required

@@ -6,27 +6,14 @@
   <div class="row align-items-center">
     <div class="col">
       <h1 class="page-title">All Leads</h1>
-      <div class="text-muted mt-1">
-        Manage all active leads
-        {% if current_user.role == 'admin' %}
-        {% elif current_user.role == 'processor' %}
-        {% endif %}
-      </div>
+      <div class="text-muted mt-1">Manage all active leads</div>
     </div>
 
     <div class="col-auto">
       <div class="btn-list">
-        <!-- ✅ Export only for Admin -->
         {% if current_user.role == 'admin' %}
         <div class="dropdown">
           <button class="btn btn-outline-success dropdown-toggle" data-bs-toggle="dropdown">
-            <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="16" height="16" viewBox="0 0 24 24"
-                 stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-              <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-              <path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2 -2v-2" />
-              <path d="M7 11l5 5l5 -5" />
-              <path d="M12 4v12" />
-            </svg>
             Export
           </button>
           <div class="dropdown-menu dropdown-menu-end">
@@ -50,7 +37,7 @@
         <label class="form-label">Status</label>
         <select name="status" class="form-select" onchange="this.form.submit()">
           <option value="all" {% if request.args.get('status', 'all') == 'all' %}selected{% endif %}>All</option>
-          {% for s in statuses if not (current_user.role == 'processor' and s in ['Archived', 'Deleted']) %}
+          {% for s in statuses_pipeline %}
           <option value="{{ s }}" {% if request.args.get('status') == s %}selected{% endif %}>{{ s }}</option>
           {% endfor %}
         </select>
@@ -78,19 +65,35 @@
 
 <!-- 📋 Leads Table -->
 <div class="card">
-  <div class="card-header">
+  <div class="card-header d-flex justify-content-between align-items-center">
     <h3 class="card-title">All Leads</h3>
-    <div class="card-actions">
-      <div class="text-muted">Showing {{ leads|length }} lead{% if leads|length != 1 %}s{% endif %}</div>
-    </div>
+    <div class="text-muted">Showing {{ leads|length }} leads</div>
   </div>
 
   <div class="card-body">
+
+    {% if current_user.role == 'admin' and leads %}
+    <form method="POST" action="{{ url_for('bulk_update_status') }}" id="bulkForm">
+      <div class="d-flex justify-content-start align-items-center gap-2 mb-3">
+        <select name="new_status" class="form-select w-auto" required>
+          <option value="">-- Change Status To --</option>
+          <option value="Pending Outreach">Pending Outreach</option>
+          <option value="Texted / Call Done">Texted / Call Done</option>
+          <option value="In Progress">In Progress</option>
+          <option value="Done">Done</option>
+        </select>
+        <button class="btn btn-primary" type="submit">Apply to Selected</button>
+      </div>
+    {% endif %}
+
     {% if leads %}
     <div class="table-responsive">
       <table class="table table-vcenter table-hover align-middle">
         <thead>
           <tr>
+            {% if current_user.role == 'admin' %}
+            <th><input type="checkbox" id="select_all"></th>
+            {% endif %}
             <th>ID</th>
             <th>Client</th>
             <th>Contact</th>
@@ -105,22 +108,20 @@
         <tbody>
           {% for lead in leads %}
           <tr>
+            {% if current_user.role == 'admin' %}
+            <td><input type="checkbox" name="lead_ids" value="{{ lead.id }}"></td>
+            {% endif %}
+
             <td>#{{ lead.id }}</td>
             <td><strong>{{ lead.customer_name }}</strong></td>
             <td>{{ lead.customer_number }}</td>
             <td><span class="badge bg-primary-lt">{{ lead.department }}</span></td>
-            <td>
-              {% if current_user.role == 'processor' %}
-                —
-              {% else %}
-                {{ lead.added_by }}
-              {% endif %}
-            </td>     
+            <td>{% if current_user.role == 'processor' %}—{% else %}{{ lead.added_by }}{% endif %}</td>     
             <td class="text-muted small">{{ lead.created_at.strftime('%b %d, %Y') if lead.created_at else 'N/A' }}</td>
 
-            <!-- ✅ Editable Status for Admin & Processor -->
+            <!-- ✅ Editable Status -->
             <td>
-              {% if current_user.role in ['admin', 'processor'] %}
+              {% if current_user.role in ['admin','processor'] %}
               <form method="POST" action="{{ url_for('update_status', lead_id=lead.id) }}">
                 <input type="hidden" name="origin" value="all_leads">
                 <select name="status" class="form-select form-select-sm" onchange="this.form.submit()">
@@ -169,13 +170,7 @@
                   <p><strong>Department:</strong> {{ lead.department }}</p>
                   <p><strong>Service:</strong> {{ lead.context_service or 'N/A' }}</p>
                   <p><strong>Status:</strong> {{ lead.status }}</p>
-                  <p><strong>Added By:</strong>
-                    {% if current_user.role == 'processor' %}
-                      —
-                    {% else %}
-                      {{ lead.added_by }}
-                    {% endif %}
-                  </p>     
+                  <p><strong>Added By:</strong> {% if current_user.role == 'processor' %}—{% else %}{{ lead.added_by }}{% endif %}</p>     
                   <p><strong>Date:</strong> {{ lead.created_at.strftime('%b %d, %Y %H:%M') if lead.created_at else 'N/A' }}</p>
                   {% if lead.attachment_filename %}
                     <p><strong>Attachment:</strong> <a href="{{ lead.attachment_filename }}" target="_blank">Open File</a></p>
@@ -191,6 +186,11 @@
         </tbody>
       </table>
     </div>
+
+    {% if current_user.role == 'admin' %}
+    </form>
+    {% endif %}
+
     {% else %}
     <div class="empty text-center py-5">
       <p class="empty-title">No leads found</p>
@@ -199,4 +199,11 @@
     {% endif %}
   </div>
 </div>
+
+<script>
+document.getElementById("select_all")?.addEventListener("click", function() {
+  document.querySelectorAll('input[name="lead_ids"]').forEach(cb => cb.checked = this.checked);
+});
+</script>
+
 {% endblock %}
