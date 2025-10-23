@@ -651,11 +651,17 @@ def bulk_update_status():
     for lead in leads:
         lead.status = new_status
         if new_status == "Done":
-            lead.closed_at = datetime.utcnow()
-            lead.closed_by = current_user.id
-        else:
+            lead.status = "Pending Outreach"
             lead.closed_at = None
             lead.closed_by = None
+            lead.sub_status = None
+            flash("✅ Lead triaged and moved to All Leads (Pending Outreach).", "success")
+        else:
+            lead.status = new_status
+            lead.closed_at = None
+            lead.closed_by = None
+            lead.sub_status = None
+            flash(f"✅ Lead status changed to '{new_status}'.", "success")
 
     db.session.commit()
     flash(f"✅ {len(leads)} leads updated to '{new_status}' successfully!", "success")
