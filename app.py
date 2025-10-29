@@ -1120,10 +1120,18 @@ def init_db_with_retry(max_tries=5, delay=2):
             time.sleep(delay)
     print("⚠️ DB init skipped after retries. Will try again on first request.")
 
-@app.before_first_request
-def _run_startup_tasks_once():
-    init_db_with_retry()
-    start_nhost_keepalive()
+# Runs once per worker when the app starts serving (Flask 3.x).
+# Falls back to before_first_request on Flask 2.x.
+if hasattr(app, "before_serving"):
+    @app.before_serving
+    def _run_startup_tasks_once():
+        init_db_with_retry()
+        start_nhost_keepalive()
+else:
+    @app.before_first_request
+    def _run_startup_tasks_once():
+        init_db_with_retry()
+        start_nhost_keepalive()
 
 
 # ---------------------------
