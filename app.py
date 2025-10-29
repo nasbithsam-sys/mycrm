@@ -1,17 +1,13 @@
 import os
 import csv
 import io
-import uuid
-import re
-import time
 import pyotp
 from datetime import datetime, date, timedelta
 from functools import wraps
-from collections import Counter
 
 from flask import (
     Flask, render_template, redirect, url_for, request, flash,
-    send_from_directory, Response, make_response, session
+    send_from_directory
 )
 from flask_sqlalchemy import SQLAlchemy
 from dotenv import load_dotenv
@@ -37,7 +33,6 @@ from flask_login import (
     logout_user,
     current_user,
 )
-from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash, check_password_hash
 from dateutil.relativedelta import relativedelta
 from sqlalchemy import cast, Date, extract
@@ -78,6 +73,7 @@ app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
     "pool_pre_ping": True,
     "pool_size": 5,
     "max_overflow": 2,
+    "pool_recycle": 300,
 }
 db = SQLAlchemy(app)
 
@@ -629,8 +625,6 @@ def update_status(lead_id):
 from flask import request, send_file
 import io
 import csv
-import pandas as pd
-from reportlab.pdfgen import canvas
 
 @app.route("/bulk_update_status", methods=["POST"])
 @login_required
@@ -1060,21 +1054,77 @@ def timedelta_filter(value):
         return "Just now"
 
 # ---------------------------
-# Database Initialization
+# Safe DB init + Nhost keepalive
 # ---------------------------
-with app.app_context():
-    db.create_all()
-    if not User.query.filter_by(username='admin').first():
-        admin_user = User(
-            username='admin',
-            password=generate_password_hash('admin123', method="pbkdf2:sha256"),
-            role='admin',
-            otp_secret=pyotp.random_base32(),
-            otp_verified=False
+import threading, time, requests
+
+# from env (add these to your Render/Nhost env vars)
+NHOST_GRAPHQL = os.getenv("NHOST_GRAPHQL")            # e.g. https://<sub>.nhost.run/v1/graphql
+NHOST_ADMIN_SECRET = os.getenv("NHOST_ADMIN_SECRET")  # your admin secret
+
+def _ping_nhost():
+    if not (NHOST_GRAPHQL and NHOST_ADMIN_SECRET):
+        return
+    try:
+        requests.post(
+            NHOST_GRAPHQL,
+            headers={
+                "Content-Type": "application/json",
+                "x-hasura-admin-secret": NHOST_ADMIN_SECRET,
+            },
+            json={"query": "query { __typename }"},
+            timeout=5,
         )
-        db.session.add(admin_user)
-        db.session.commit()
-        print(f"✅ Admin user created in database. OTP secret: {admin_user.otp_secret}")
+    except Exception:
+        pass
+
+def start_nhost_keepalive(interval_sec: int = 600):
+    """Ping Nhost every `interval_sec` seconds (daemon thread)."""
+    if not (NHOST_GRAPHQL and NHOST_ADMIN_SECRET):
+        print("ℹ️ Keep-alive disabled: NHOST envs missing.")
+        return
+
+    def loop():
+        _ping_nhost()  # immediate
+        while True:
+            time.sleep(interval_sec)
+            _ping_nhost()
+
+    t = threading.Thread(target=loop, name="nhost-keepalive", daemon=True)
+    t.start()
+
+def init_db_with_retry(max_tries=5, delay=2):
+    """Create tables / seed admin with short retries so boot doesn’t crash."""
+    from sqlalchemy.exc import OperationalError
+    tries = 0
+    while tries < max_tries:
+        try:
+            with app.app_context():
+                db.create_all()
+                if not User.query.filter_by(username='admin').first():
+                    admin_user = User(
+                        username='admin',
+                        password=generate_password_hash('admin123', method="pbkdf2:sha256"),
+                        role='admin',
+                        otp_secret=pyotp.random_base32(),
+                        otp_verified=False
+                    )
+                    db.session.add(admin_user)
+                    db.session.commit()
+                    print(f"✅ Admin user created. OTP secret: {admin_user.otp_secret}")
+            print("✅ DB init OK")
+            return
+        except OperationalError as e:
+            tries += 1
+            print(f"⏳ DB init attempt {tries}/{max_tries} failed: {e}")
+            time.sleep(delay)
+    print("⚠️ DB init skipped after retries. Will try again on first request.")
+
+@app.before_first_request
+def _run_startup_tasks_once():
+    init_db_with_retry()
+    start_nhost_keepalive()
+
 
 # ---------------------------
 # App Entry Point

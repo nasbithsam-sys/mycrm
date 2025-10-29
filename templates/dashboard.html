@@ -137,7 +137,7 @@
       </div>
       <div class="card-body">
         <div class="chart-container" style="position: relative; height: 320px;">
-          <canvas id="deptChart"></canvas>
+          <canvas id="deptChart" data-labels='{{ dept_labels|default([])|tojson }}' data-counts='{{ dept_counts|default([])|tojson }}' data-is-admin='{{ is_admin|default(False)|tojson }}'></canvas>
         </div>
       </div>
     </div>
@@ -160,15 +160,16 @@
             </thead>
             <tbody>
               {% for i in range(dept_labels|length) %}
+              {% set perc = (dept_counts[i] / total_leads * 100) if total_leads > 0 else 0 %}
               <tr>
                 <td><span class="badge bg-primary-lt">{{ dept_labels[i] }}</span></td>
                 <td><strong>{{ dept_counts[i] }}</strong></td>
                 <td>
                   <div class="progress progress-sm">
-                    <div class="progress-bar" style="width: {{ (dept_counts[i] / total_leads * 100) if total_leads > 0 else 0 }}%"></div>
+                    <div class="progress-bar" data-percent="{{ '%.1f'|format(perc) }}"></div>
                   </div>
                   <div class="small text-muted">
-                    {{ "%.1f"|format((dept_counts[i] / total_leads * 100) if total_leads > 0 else 0) }}%
+                    {{ '%.1f'|format(perc) }}%
                   </div>
                 </td>
               </tr>
@@ -317,29 +318,46 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-  {% if is_admin and dept_labels and dept_counts %}
-  const ctx = document.getElementById('deptChart');
-  if (ctx) {
-    new Chart(ctx.getContext('2d'), {
-      type: 'doughnut',
-      data: {
-        labels: {{ dept_labels|default([])|tojson }},
-        datasets: [{
-          data: {{ dept_counts|default([])|tojson }},
-          backgroundColor: ['#206bc4','#2fb344','#f59f00','#4299e1','#e64980','#868e96','#5c7cfa','#20c997'],
-          borderColor: '#fff',
-          borderWidth: 2
-        }]
-      },
-      options: {
-        responsive: true,
-        plugins: { legend: { position: 'bottom', labels: { usePointStyle: true, padding: 20, font: { size: 11 }}} },
-        cutout: '65%'
+  // Initialize dept chart from data attributes if present
+  const canvas = document.getElementById('deptChart');
+  if (canvas) {
+    try {
+      const isAdmin = JSON.parse(canvas.getAttribute('data-is-admin') || 'false');
+      const labels = JSON.parse(canvas.getAttribute('data-labels') || '[]');
+      const counts = JSON.parse(canvas.getAttribute('data-counts') || '[]');
+      if (isAdmin && labels.length && counts.length) {
+        const ctx = canvas.getContext('2d');
+        new Chart(ctx, {
+          type: 'doughnut',
+          data: {
+            labels: labels,
+            datasets: [{
+              data: counts,
+              backgroundColor: ['#206bc4','#2fb344','#f59f00','#4299e1','#e64980','#868e96','#5c7cfa','#20c997'],
+              borderColor: '#fff',
+              borderWidth: 2
+            }]
+          },
+          options: {
+            responsive: true,
+            plugins: { legend: { position: 'bottom', labels: { usePointStyle: true, padding: 20, font: { size: 11 }}} },
+            cutout: '65%'
+          }
+        });
       }
-    });
+    } catch (e) {
+      // fail silently if JSON parsing fails
+      console.error('Failed to initialize dept chart', e);
+    }
   }
-  {% endif %}
 
+  // Set progress bar widths from data-percent attributes
+  document.querySelectorAll('.progress-bar[data-percent]').forEach(el => {
+    const p = parseFloat(el.getAttribute('data-percent')) || 0;
+    el.style.width = p + '%';
+  });
+
+  // update time every minute
   setInterval(() => {
     const el = document.getElementById('update-time');
     if (el) el.textContent = new Date().toLocaleTimeString();
