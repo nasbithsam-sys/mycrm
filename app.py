@@ -4,6 +4,8 @@ import io
 import pyotp
 from datetime import datetime, date, timedelta
 from functools import wraps
+from sqlalchemy import func, desc
+
 
 from flask import (
     Flask, render_template, redirect, url_for, request, flash,
@@ -768,54 +770,289 @@ def dashboard():
         )
     
 # ---------------------------
-# Analytics
+# Analytics (Admin - One-Go)
 # ---------------------------
 @app.route("/analytics")
 @login_required
 @admin_required
 def analytics():
+    """
+    Admin analytics with filters:
+      - start_date / end_date (YYYY-MM-DD)
+      - granularity: day | week | month
+      - department: specific or 'all'
+    """
+    now = datetime.now()
     today = date.today()
 
-    today_leads = Lead.query.filter(cast(Lead.created_at, Date) == today).count()
+    # ---- Read filters from query string
+    start_date_str = request.args.get("start_date")
+    end_date_str   = request.args.get("end_date")
+    granularity    = (request.args.get("granularity") or "month").lower()
+    department     = request.args.get("department", "all")
 
-    week_leads, week_labels = [], []
-    for i in range(4):
-        week_start = today - timedelta(days=today.weekday() + (3 - i) * 7)
-        week_end = week_start + timedelta(days=6)
-        week_count = Lead.query.filter(
-            Lead.created_at >= week_start,
-            Lead.created_at <= week_end
-        ).count()
-        week_leads.append(week_count)
-        week_labels.append(week_start.strftime('%b %d'))
+    # Defaults: current month
+    if not start_date_str or not end_date_str:
+        month_start = today.replace(day=1)
+        next_month  = month_start + relativedelta(months=1)
+        start_date  = month_start
+        end_date    = next_month - timedelta(days=1)
+        start_date_str = start_date.strftime("%Y-%m-%d")
+        end_date_str   = end_date.strftime("%Y-%m-%d")
+    else:
+        start_date = datetime.strptime(start_date_str, "%Y-%m-%d").date()
+        end_date   = datetime.strptime(end_date_str, "%Y-%m-%d").date()
 
-    month_leads, month_labels = [], []
-    for i in range(6):
-        month_date = today - relativedelta(months=(5 - i))
-        year, month = month_date.year, month_date.month
-        month_count = Lead.query.filter(
-            extract('year', Lead.created_at) == year,
-            extract('month', Lead.created_at) == month
-        ).count()
-        month_leads.append(month_count)
-        month_labels.append(month_date.strftime('%b %Y'))
+    # Window bounds (inclusive start, exclusive end)
+    start_inclusive = datetime.combine(start_date, datetime.min.time())
+    end_exclusive   = datetime.combine(end_date + timedelta(days=1), datetime.min.time())
 
-    dept_stats = db.session.query(Lead.department, db.func.count(Lead.id)).group_by(Lead.department).all()
-    confirmed_dept_stats = db.session.query(Lead.department, db.func.count(Lead.id)).filter_by(status="Done").group_by(Lead.department).all()
-    status_stats = db.session.query(Lead.status, db.func.count(Lead.id)).group_by(Lead.status).all()
+    # ---- Base filtered query (by date and department)
+    base = Lead.query.filter(Lead.created_at >= start_inclusive,
+                             Lead.created_at < end_exclusive)
+    if department != "all":
+        base = base.filter(Lead.department == department)
+
+    # Project to a subquery so we can reference subq.c.* safely (no cartesian products)
+    subq = base.with_entities(
+        Lead.id.label('id'),
+        Lead.created_at.label('created_at'),
+        Lead.department.label('department'),
+        Lead.added_by.label('added_by'),
+        Lead.status.label('status'),
+        Lead.customer_number.label('customer_number')
+    ).subquery()
+
+    # ---- Robust dialect detection (Flask-SQLAlchemy 3.x safe)
+    bind = db.session.get_bind()
+    engine = bind or db.engine
+    dialect = engine.dialect.name  # 'sqlite' or 'postgresql'
+
+    if granularity not in {"day", "week", "month"}:
+        granularity = "month"
+
+    # ---- Time-series bucketing
+    if dialect == "postgresql":
+        if granularity == "day":
+            bucket = func.date_trunc('day', subq.c.created_at)
+        elif granularity == "week":
+            bucket = func.date_trunc('week', subq.c.created_at)
+        else:
+            bucket = func.date_trunc('month', subq.c.created_at)
+
+        bucket_q = (
+            db.session.query(bucket.label("bucket"), func.count(subq.c.id))
+            .select_from(subq)
+            .group_by(bucket)
+            .order_by(bucket.asc())
+        )
+        timeseries = bucket_q.all()
+        ts_labels, ts_values = [], []
+        for b, c in timeseries:
+            if granularity == "day":
+                ts_labels.append(b.date().isoformat())
+            else:
+                # week/month → label with bucket start date
+                ts_labels.append(b.strftime("%Y-%m-%d"))
+            ts_values.append(c)
+    else:
+        # SQLite
+        if granularity == "day":
+            fmt = "%Y-%m-%d"
+        elif granularity == "week":
+            fmt = "%Y-W%W"  # year-week
+        else:
+            fmt = "%Y-%m"
+
+        bucket = func.strftime(fmt, subq.c.created_at)
+        bucket_q = (
+            db.session.query(bucket.label("bucket"), func.count(subq.c.id))
+            .select_from(subq)
+            .group_by("bucket")
+            .order_by("bucket")
+        )
+        timeseries = bucket_q.all()
+        ts_labels = [b for (b, _) in timeseries]
+        ts_values = [c for (_, c) in timeseries]
+
+    # ---- Aggregations
+    dept_rows = (
+        db.session.query(subq.c.department, func.count(subq.c.id))
+        .select_from(subq)
+        .group_by(subq.c.department)
+        .order_by(desc(func.count(subq.c.id)))
+        .all()
+    )
+    user_rows = (
+        db.session.query(subq.c.added_by, func.count(subq.c.id))
+        .select_from(subq)
+        .group_by(subq.c.added_by)
+        .order_by(desc(func.count(subq.c.id)))
+        .all()
+    )
+    dept_user_rows = (
+        db.session.query(subq.c.department, subq.c.added_by, func.count(subq.c.id))
+        .select_from(subq)
+        .group_by(subq.c.department, subq.c.added_by)
+        .order_by(subq.c.department.asc(), desc(func.count(subq.c.id)))
+        .all()
+    )
+    status_rows = (
+        db.session.query(subq.c.status, func.count(subq.c.id))
+        .select_from(subq)
+        .group_by(subq.c.status)
+        .order_by(desc(func.count(subq.c.id)))
+        .all()
+    )
+
+    # Heatmap
+    if dialect == "postgresql":
+        wd_col = func.extract('dow', subq.c.created_at)  # 0=Sun
+        hr_col = func.extract('hour', subq.c.created_at)
+    else:
+        wd_col = func.strftime('%w', subq.c.created_at)  # 0=Sun
+        hr_col = func.strftime('%H', subq.c.created_at)
+    heat_rows = (
+        db.session.query(wd_col.label('wd'), hr_col.label('hr'), func.count(subq.c.id))
+        .select_from(subq)
+        .group_by('wd', 'hr')
+        .all()
+    )
+
+    # Duplicates
+    dupe_rows = (
+        db.session.query(subq.c.customer_number, func.count(subq.c.id).label('c'))
+        .select_from(subq)
+        .group_by(subq.c.customer_number)
+        .having(func.count(subq.c.id) > 1)
+        .order_by(desc('c'))
+        .limit(50)
+        .all()
+    )
+
+    # Pivot: user × department
+    user_dept_rows = (
+        db.session.query(subq.c.added_by, subq.c.department, func.count(subq.c.id))
+        .select_from(subq)
+        .group_by(subq.c.added_by, subq.c.department)
+        .order_by(subq.c.added_by.asc(), subq.c.department.asc())
+        .all()
+    )
+
+    # ---- Simple KPIs
+    total_in_range = sum(count for _, count in dept_rows)
+    today_leads = Lead.query.filter(func.date(Lead.created_at) == today).count()
+
+    dept_labels = [d for (d, _) in dept_rows]
+    dept_counts = [c for (_, c) in dept_rows]
+    user_labels = [u or "Unknown" for (u, _) in user_rows]
+    user_counts = [c for (_, c) in user_rows]
+
+    drilldown = {}
+    for d, u, c in dept_user_rows:
+        drilldown.setdefault(d, []).append({"user": u or "Unknown", "count": c})
+
+    funnel_labels = [s or "Unknown" for (s, _) in status_rows]
+    funnel_counts = [c for (_, c) in status_rows]
+
+    # Heatmap matrix
+    heatmap = [[0]*24 for _ in range(7)]
+    for wd, hr, cnt in heat_rows:
+        wd_i = int(wd)
+        hr_i = int(hr)
+        if 0 <= wd_i <= 6 and 0 <= hr_i <= 23:
+            heatmap[wd_i][hr_i] = int(cnt)
+    weekday_labels = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat']
+    hour_labels = [f'{h:02d}:00' for h in range(24)]
+
+    # Previous period delta & avg/day
+    days_in_window = (end_date - start_date).days + 1
+    prev_start = start_date - timedelta(days=days_in_window)
+    prev_end   = start_date - timedelta(days=1)
+    prev_inclusive = datetime.combine(prev_start, datetime.min.time())
+    prev_exclusive = datetime.combine(prev_end + timedelta(days=1), datetime.min.time())
+
+    prev_base = Lead.query.filter(Lead.created_at >= prev_inclusive,
+                                  Lead.created_at < prev_exclusive)
+    if department != "all":
+        prev_base = prev_base.filter(Lead.department == department)
+    prev_total = prev_base.count()
+
+    def pct_change(curr, prev):
+        if prev == 0:
+            return None
+        return round((curr - prev) * 100.0 / prev, 1)
+
+    total_delta_pct = pct_change(total_in_range, prev_total)
+    avg_per_day = round(total_in_range / max(days_in_window, 1), 2)
+
+    # Avg close time (hours) for leads closed in range
+    closed_q = Lead.query.filter(
+        Lead.closed_at.isnot(None),
+        Lead.closed_at >= start_inclusive,
+        Lead.closed_at < end_exclusive
+    )
+    if department != "all":
+        closed_q = closed_q.filter(Lead.department == department)
+    closed_rows = closed_q.with_entities(Lead.created_at, Lead.closed_at).all()
+    cycle_hours = []
+    for c_at, cl_at in closed_rows:
+        if c_at and cl_at and cl_at > c_at:
+            cycle_hours.append((cl_at - c_at).total_seconds() / 3600.0)
+    avg_cycle_hours = round(sum(cycle_hours)/len(cycle_hours), 1) if cycle_hours else None
+
+    # Confirmed leads by department (for your sidebar block)
+    confirmed_dept_stats = (
+        db.session.query(Lead.department, func.count(Lead.id))
+        .filter(Lead.status == "Done")
+        .group_by(Lead.department)
+        .all()
+    )
+
+    # Quick preset strings for template (avoid using timedelta in Jinja)
+    today_str        = now.strftime('%Y-%m-%d')
+    last7_start_str  = (now - timedelta(days=6)).strftime('%Y-%m-%d')
+    month_start_str  = now.replace(day=1).strftime('%Y-%m-%d')
 
     return render_template(
         "analytics.html",
+        # filters + selections
+        start_date=start_date_str,
+        end_date=end_date_str,
+        granularity=granularity,
+        selected_department=department,
+        departments=DEPARTMENTS,
+
+        # headline stats
         today_leads=today_leads,
-        week_leads=week_leads,
-        week_labels=week_labels,
-        month_leads=month_leads,
-        month_labels=month_labels,
-        dept_stats=dept_stats,
+        total_in_range=total_in_range,
+        total_delta_pct=total_delta_pct,
+        avg_per_day=avg_per_day,
+        avg_cycle_hours=avg_cycle_hours,
+        now=now,
+
+        # charts
+        ts_labels=ts_labels, ts_values=ts_values,
+        dept_labels=dept_labels, dept_counts=dept_counts,
+        user_labels=user_labels, user_counts=user_counts,
+
+        # drilldown
+        drilldown=drilldown,
+
+        # extras
+        funnel_labels=funnel_labels, funnel_counts=funnel_counts,
+        heatmap=heatmap, weekday_labels=weekday_labels, hour_labels=hour_labels,
+        dupe_rows=dupe_rows,
+        user_dept={ (u or "Unknown"): {} for u, _, _ in user_dept_rows },  # init; will fill below
         confirmed_dept_stats=confirmed_dept_stats,
-        status_stats=status_stats,
-        now=datetime.now()
+
+        # quick presets
+        today_str=today_str,
+        last7_start_str=last7_start_str,
+        month_start_str=month_start_str
     )
+
+
 
 # ---------------------------
 # File Uploads

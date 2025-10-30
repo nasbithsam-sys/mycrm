@@ -26,11 +26,76 @@
             <i class="ti ti-file-spreadsheet me-2"></i> Export Active Leads (CSV)
           </a>
           <a class="dropdown-item" href="{{ url_for('export_closed_leads') }}">
-            <i class="ti ti-archive me-2"></i> Export Closed Leads (CSV)
+            <i class="ti ti-archive me-2"></i> Export Closed Leads (CSV/XLSX/PDF)
           </a>
         </div>
       </div>
     </div>
+  </div>
+</div>
+
+<!-- Filters -->
+<div class="card shadow-sm mb-4">
+  <div class="card-body">
+    <form class="row g-3" method="get" action="{{ url_for('analytics') }}">
+      <div class="col-md-3">
+        <label class="form-label">Start date</label>
+        <input type="date" class="form-control" name="start_date" value="{{ start_date }}">
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">End date</label>
+        <input type="date" class="form-control" name="end_date" value="{{ end_date }}">
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Granularity</label>
+        <select class="form-select" name="granularity">
+          <option value="day"   {{ 'selected' if granularity=='day' }}>Daily</option>
+          <option value="week"  {{ 'selected' if granularity=='week' }}>Weekly</option>
+          <option value="month" {{ 'selected' if granularity=='month' }}>Monthly</option>
+        </select>
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Department</label>
+        <select class="form-select" name="department">
+          <option value="all" {{ 'selected' if selected_department=='all' }}>All</option>
+          {% for d in departments %}
+            <option value="{{ d }}" {{ 'selected' if selected_department==d }}>{{ d }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="col-12 d-flex gap-2">
+        <button class="btn btn-primary"><i class="ti ti-filter"></i> Apply</button>
+
+        <!-- Quick presets (NO timedelta in Jinja) -->
+        <a class="btn btn-outline-secondary"
+           href="{{ url_for('analytics',
+                            start_date=today_str,
+                            end_date=today_str,
+                            granularity='day',
+                            department=selected_department) }}">
+          Today
+        </a>
+
+        <a class="btn btn-outline-secondary"
+           href="{{ url_for('analytics',
+                            start_date=last7_start_str,
+                            end_date=today_str,
+                            granularity='day',
+                            department=selected_department) }}">
+          Last 7 days
+        </a>
+
+        <a class="btn btn-outline-secondary"
+           href="{{ url_for('analytics',
+                            start_date=month_start_str,
+                            end_date=today_str,
+                            granularity='day',
+                            department=selected_department) }}">
+          This Month
+        </a>
+      </div>
+    </form>
   </div>
 </div>
 
@@ -50,7 +115,7 @@
             <div class="font-weight-medium text-uppercase small text-muted">Today's Leads</div>
             <div class="h2 mt-2 mb-0 text-primary">{{ today_leads }}</div>
             <div class="text-success small d-flex align-items-center">
-              <i class="ti ti-trending-up me-1"></i> Active today
+              <i class="ti ti-trending-up me-1"></i> {{ now.strftime('%Y-%m-%d') }}
             </div>
           </div>
         </div>
@@ -58,64 +123,64 @@
     </div>
   </div>
 
-  <!-- Weekly -->
+  <!-- In Range -->
   <div class="col-sm-6 col-lg-3">
     <div class="card card-sm shadow-sm">
       <div class="card-body">
         <div class="row align-items-center">
           <div class="col-auto">
             <span class="bg-success text-white avatar">
-              <i class="ti ti-calendar-week"></i>
+              <i class="ti ti-chart-bar"></i>
             </span>
           </div>
           <div class="col">
-            <div class="font-weight-medium text-uppercase small text-muted">Weekly Total</div>
-            <div class="h2 mt-2 mb-0 text-success">{{ week_leads|sum if week_leads else 0 }}</div>
-            <div class="text-muted small">Last 4 weeks</div>
+            <div class="font-weight-medium text-uppercase small text-muted">Leads in Range</div>
+            <div class="h2 mt-2 mb-0 text-success">{{ total_in_range }}</div>
+            <div class="text-muted small">{{ start_date }} → {{ end_date }}</div>
           </div>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- Monthly -->
+  <!-- Vs Prev Period + Avg/day -->
   <div class="col-sm-6 col-lg-3">
     <div class="card card-sm shadow-sm">
       <div class="card-body">
         <div class="row align-items-center">
           <div class="col-auto">
             <span class="bg-warning text-white avatar">
-              <i class="ti ti-calendar-month"></i>
+              <i class="ti ti-arrows-double-ne-sw"></i>
             </span>
           </div>
           <div class="col">
-            <div class="font-weight-medium text-uppercase small text-muted">Monthly Total</div>
-            <div class="h2 mt-2 mb-0 text-warning">{{ month_leads|sum if month_leads else 0 }}</div>
-            <div class="text-warning small">Last 6 months</div>
+            <div class="font-weight-medium text-uppercase small text-muted">Vs Prev Period</div>
+            <div class="h2 mt-2 mb-0 text-warning">
+              {% if total_delta_pct is not none %}{{ total_delta_pct }}%{% else %}—{% endif %}
+            </div>
+            <div class="text-muted small">Avg/day: {{ avg_per_day }}</div>
           </div>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- Confirmed -->
+  <!-- Avg Close Time -->
   <div class="col-sm-6 col-lg-3">
     <div class="card card-sm shadow-sm">
       <div class="card-body">
         <div class="row align-items-center">
           <div class="col-auto">
             <span class="bg-info text-white avatar">
-              <i class="ti ti-check"></i>
+              <i class="ti ti-clock-hour-4"></i>
             </span>
           </div>
           <div class="col">
-            <div class="font-weight-medium text-uppercase small text-muted">Confirmed Leads</div>
-            <div class="h3 mt-2 mb-0 text-info">
-              {% if confirmed_dept_stats and confirmed_dept_stats|length > 0 %}
-                {{ confirmed_dept_stats|sum(attribute=1) }}
-              {% else %}0{% endif %}
+            <div class="font-weight-medium text-uppercase small text-muted">Avg Close Time</div>
+            <div class="h2 mt-2 mb-0 text-info">
+              {% if avg_cycle_hours is not none %}{{ avg_cycle_hours }}h{% else %}—{% endif %}
             </div>
-            <div class="text-info small">Successfully closed</div>
+            <div class="text-muted small">For closed leads in range</div>
           </div>
         </div>
       </div>
@@ -123,101 +188,196 @@
   </div>
 </div>
 
-<!-- Tabs for charts -->
+<!-- Tabs -->
 <div class="card shadow-sm">
   <div class="card-header">
     <ul class="nav nav-tabs card-header-tabs" data-bs-toggle="tabs">
-      <li class="nav-item"><a href="#weekly" class="nav-link active" data-bs-toggle="tab">Weekly</a></li>
-      <li class="nav-item"><a href="#monthly" class="nav-link" data-bs-toggle="tab">Monthly</a></li>
+      <li class="nav-item"><a href="#timeseries" class="nav-link active" data-bs-toggle="tab">Time Series</a></li>
       <li class="nav-item"><a href="#dept" class="nav-link" data-bs-toggle="tab">Departments</a></li>
-      <li class="nav-item"><a href="#status" class="nav-link" data-bs-toggle="tab">Status</a></li>
+      <li class="nav-item"><a href="#users" class="nav-link" data-bs-toggle="tab">Users</a></li>
+      <li class="nav-item"><a href="#status" class="nav-link" data-bs-toggle="tab">Funnel / Status</a></li>
+      <li class="nav-item"><a href="#heatmap" class="nav-link" data-bs-toggle="tab">Heatmap</a></li>
+      <li class="nav-item"><a href="#quality" class="nav-link" data-bs-toggle="tab">Data Quality</a></li>
+      <li class="nav-item"><a href="#pivot" class="nav-link" data-bs-toggle="tab">Users × Departments</a></li>
     </ul>
   </div>
 
   <div class="card-body">
     <div class="tab-content">
-      <div class="tab-pane active show" id="weekly">
-        <h3 class="card-title">Weekly Performance</h3>
-        <div style="height:400px;"><canvas id="weeklyChart"></canvas></div>
+      <!-- Time Series -->
+      <div class="tab-pane active show" id="timeseries">
+        <h3 class="card-title">Leads Over Time</h3>
+        <div style="height:400px;"><canvas id="tsChart"></canvas></div>
       </div>
 
-      <div class="tab-pane" id="monthly">
-        <h3 class="card-title">Monthly Growth</h3>
-        <div style="height:400px;"><canvas id="monthlyChart"></canvas></div>
-      </div>
-
+      <!-- Departments -->
       <div class="tab-pane" id="dept">
         <div class="row">
           <div class="col-lg-8">
-            <h3 class="card-title">Department Overview</h3>
+            <h3 class="card-title">Department Overview (In Range)</h3>
             <div style="height:400px;"><canvas id="deptChart"></canvas></div>
           </div>
           <div class="col-lg-4">
             <h4 class="card-title">Department Stats</h4>
             <div class="list-group list-group-flush">
-              {% for dept, count in dept_stats %}
+              {% set dept_total = (dept_counts|sum) if dept_counts else 0 %}
+              {% for i in range(dept_labels|length) %}
               <div class="list-group-item">
                 <div class="d-flex justify-content-between">
-                  <span>{{ dept }}</span>
-                  <span class="badge bg-primary">{{ count }}</span>
+                  <span>{{ dept_labels[i] }}</span>
+                  <span class="badge bg-primary">{{ dept_counts[i] }}</span>
                 </div>
                 <div class="progress progress-sm mt-2">
-                  <div class="progress-bar" style="width: {{ (count / (dept_stats|sum(attribute='1') or 1)) * 100 }}%"></div>
+                  <div class="progress-bar" style="width: {{ (dept_counts[i] / (dept_total or 1)) * 100 }}%"></div>
                 </div>
-                <small class="text-muted">{{ "%.1f"|format((count / (dept_stats|sum(attribute='1') or 1)) * 100) }}%</small>
+                <small class="text-muted">{{ "%.1f"|format((dept_counts[i] / (dept_total or 1)) * 100) }}%</small>
               </div>
               {% endfor %}
             </div>
 
-            <h4 class="card-title mt-4">Confirmed Leads</h4>
+            <h4 class="card-title mt-4">Confirmed Leads (All-Time / Current)</h4>
             <div class="list-group list-group-flush">
-              {% for dept, count in confirmed_dept_stats %}
-              <div class="list-group-item d-flex justify-content-between">
-                <span>{{ dept }}</span>
-                <span class="badge bg-success">{{ count }}</span>
-              </div>
-              {% endfor %}
+              {% if confirmed_dept_stats %}
+                {% for dept, count in confirmed_dept_stats %}
+                  <div class="list-group-item d-flex justify-content-between">
+                    <span>{{ dept }}</span>
+                    <span class="badge bg-success">{{ count }}</span>
+                  </div>
+                {% endfor %}
+              {% else %}
+                <div class="text-muted small">No confirmed data available.</div>
+              {% endif %}
             </div>
           </div>
         </div>
       </div>
 
+      <!-- Users -->
+      <div class="tab-pane" id="users">
+        <h3 class="card-title">Leads by User (Added By)</h3>
+        <div style="height:400px;"><canvas id="userChart"></canvas></div>
+      </div>
+
+      <!-- Funnel / Status -->
       <div class="tab-pane" id="status">
         <div class="row">
           <div class="col-lg-8">
-            <h3 class="card-title">Lead Status Distribution</h3>
-            <div style="height:400px;"><canvas id="statusChart"></canvas></div>
+            <h3 class="card-title">Lead Status Distribution (Created in Range)</h3>
+            <div style="height:400px;"><canvas id="funnelChart"></canvas></div>
           </div>
           <div class="col-lg-4">
             <h4 class="card-title">Status Breakdown</h4>
             <div class="list-group list-group-flush">
-              {% for status, count in status_stats %}
+              {% set st_total = (funnel_counts|sum) if funnel_counts else 0 %}
+              {% for i in range(funnel_labels|length) %}
               <div class="list-group-item">
                 <div class="d-flex justify-content-between">
-                  <span>{{ status }}</span>
+                  <span>{{ funnel_labels[i] }}</span>
                   <span class="badge 
-                    {% if status == 'New Lead' %}bg-blue
-                    {% elif status == 'Issue in Lead' %}bg-red
-                    {% elif status == 'Pending Outreach' %}bg-orange
-                    {% elif status == 'Texted / Call Done' %}bg-yellow
-                    {% elif status == 'In Progress' %}bg-purple
-                    {% elif status == 'Done' %}bg-green
+                    {% if funnel_labels[i] == 'New Lead' %}bg-blue
+                    {% elif funnel_labels[i] == 'Issue in Lead' %}bg-red
+                    {% elif funnel_labels[i] == 'Pending Outreach' %}bg-orange
+                    {% elif funnel_labels[i] == 'Texted / Call Done' %}bg-yellow
+                    {% elif funnel_labels[i] == 'In Progress' %}bg-purple
+                    {% elif funnel_labels[i] == 'Done' %}bg-green
                     {% else %}bg-secondary{% endif %}">
-                    {{ count }}
+                    {{ funnel_counts[i] }}
                   </span>
                 </div>
                 <div class="progress progress-sm mt-2">
-                  <div class="progress-bar"
-                       style="width: {{ (count / (status_stats|sum(attribute='1') or 1)) * 100 }}%">
-                  </div>
+                  <div class="progress-bar" style="width: {{ (funnel_counts[i] / (st_total or 1)) * 100 }}%"></div>
                 </div>
-                <small class="text-muted">{{ "%.1f"|format((count / (status_stats|sum(attribute='1') or 1)) * 100) }}%</small>
+                <small class="text-muted">{{ "%.1f"|format((funnel_counts[i] / (st_total or 1)) * 100) }}%</small>
               </div>
               {% endfor %}
             </div>
           </div>
         </div>
       </div>
+
+      <!-- Heatmap -->
+      <div class="tab-pane" id="heatmap">
+        <h3 class="card-title">Lead Volume Heatmap (Weekday × Hour)</h3>
+        <div class="table-responsive">
+          <table class="table table-sm table-bordered align-middle text-center">
+            <thead>
+              <tr>
+                <th>Day \ Hour</th>
+                {% for h in hour_labels %}
+                  <th class="text-nowrap">{{ h }}</th>
+                {% endfor %}
+              </tr>
+            </thead>
+            <tbody>
+              {% for d_idx in range(weekday_labels|length) %}
+                <tr>
+                  <th class="text-nowrap">{{ weekday_labels[d_idx] }}</th>
+                  {% for h_idx in range(hour_labels|length) %}
+                    <td>{{ heatmap[d_idx][h_idx] }}</td>
+                  {% endfor %}
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        <p class="text-muted small mb-0">Busiest cells → best outreach coverage windows.</p>
+      </div>
+
+      <!-- Data Quality -->
+      <div class="tab-pane" id="quality">
+        <h3 class="card-title">Potential Duplicates (by Customer Number)</h3>
+        <div class="table-responsive">
+          <table class="table table-sm align-middle">
+            <thead><tr><th>Number</th><th class="text-end">Count</th></tr></thead>
+            <tbody>
+              {% if dupe_rows %}
+                {% for num, c in dupe_rows %}
+                  <tr><td class="text-nowrap">{{ num }}</td><td class="text-end">{{ c }}</td></tr>
+                {% endfor %}
+              {% else %}
+                <tr><td colspan="2" class="text-muted">No duplicates in the selected window.</td></tr>
+              {% endif %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Users × Departments -->
+      <div class="tab-pane" id="pivot">
+        <h3 class="card-title">Users × Departments (In Range)</h3>
+        <div class="table-responsive">
+          <table class="table table-sm table-bordered align-middle text-center">
+            <thead>
+              <tr>
+                <th>User \ Dept</th>
+                {% for d in departments %}
+                  <th>{{ d }}</th>
+                {% endfor %}
+                <th>Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% if user_dept %}
+                {% for user, deps in user_dept.items() %}
+                  {% set row_total = 0 %}
+                  <tr>
+                    <th class="text-nowrap">{{ user }}</th>
+                    {% for d in departments %}
+                      {% set val = deps.get(d, 0) %}
+                      {% set row_total = row_total + val %}
+                      <td>{{ val }}</td>
+                    {% endfor %}
+                    <th>{{ row_total }}</th>
+                  </tr>
+                {% endfor %}
+              {% else %}
+                <tr><td colspan="{{ departments|length + 2 }}" class="text-muted">No data for selected filters.</td></tr>
+              {% endif %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
     </div>
   </div>
 </div>
@@ -226,53 +386,68 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', () => {
-  const weeklyChart = new Chart(document.getElementById('weeklyChart'), {
-    type: 'bar',
-    data: {
-      labels: {{ week_labels|tojson if week_labels else ['Week 1','Week 2','Week 3','Week 4'] }},
-      datasets: [{
-        data: {{ week_leads|tojson if week_leads else [0,0,0,0] }},
-        backgroundColor: 'rgba(39, 174, 96, 0.8)',
-        borderRadius: 6
-      }]
-    },
-    options: { responsive: true, plugins: { legend: { display: false } } }
-  });
-
-  const monthlyChart = new Chart(document.getElementById('monthlyChart'), {
+  // Time Series
+  new Chart(document.getElementById('tsChart'), {
     type: 'line',
     data: {
-      labels: {{ month_labels|tojson if month_labels else ['Jan','Feb','Mar','Apr','May','Jun'] }},
+      labels: {{ ts_labels|tojson if ts_labels else [] }},
       datasets: [{
-        data: {{ month_leads|tojson if month_leads else [0,0,0,0,0,0] }},
-        borderColor: '#f1c40f', backgroundColor: 'rgba(241,196,15,0.15)', tension: 0.4, fill: true
+        label: 'Leads',
+        data: {{ ts_values|tojson if ts_values else [] }},
+        borderColor: '#206bc4',
+        backgroundColor: 'rgba(32,107,196,0.12)',
+        tension: 0.35,
+        fill: true
       }]
     },
     options: { responsive: true, plugins: { legend: { display: false } } }
   });
 
-  const deptChart = new Chart(document.getElementById('deptChart'), {
+  // Department
+  new Chart(document.getElementById('deptChart'), {
     type: 'doughnut',
     data: {
-      labels: {{ dept_stats|map(attribute='0')|list|tojson if dept_stats else [] }},
+      labels: {{ dept_labels|tojson if dept_labels else [] }},
       datasets: [{
-        data: {{ dept_stats|map(attribute='1')|list|tojson if dept_stats else [] }},
+        data: {{ dept_counts|tojson if dept_counts else [] }},
         backgroundColor: ['#206bc4','#4299e1','#667eea','#f093fb','#e53e3e','#f59e0b','#10b981']
       }]
     },
     options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
   });
 
-  const statusChart = new Chart(document.getElementById('statusChart'), {
-    type: 'pie',
+  // Users
+  new Chart(document.getElementById('userChart'), {
+    type: 'bar',
     data: {
-      labels: {{ status_stats|map(attribute='0')|list|tojson if status_stats else [] }},
+      labels: {{ user_labels|tojson if user_labels else [] }},
       datasets: [{
-        data: {{ status_stats|map(attribute='1')|list|tojson if status_stats else [] }},
-        backgroundColor: ['#206bc4','#e53e3e','#f59f00','#8b5cf6','#10b981','#6b7280']
+        label: 'Leads',
+        data: {{ user_counts|tojson if user_counts else [] }},
+        backgroundColor: 'rgba(16,185,129,0.8)',
+        borderRadius: 6
       }]
     },
-    options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+    options: {
+      responsive: true,
+      plugins: { legend: { display: false } },
+      scales: { x: { ticks: { autoSkip: false } } }
+    }
+  });
+
+  // Funnel / Status
+  new Chart(document.getElementById('funnelChart'), {
+    type: 'bar',
+    data: {
+      labels: {{ funnel_labels|tojson if funnel_labels else [] }},
+      datasets: [{
+        label: 'Leads',
+        data: {{ funnel_counts|tojson if funnel_counts else [] }},
+        backgroundColor: 'rgba(251,191,36,0.85)',
+        borderRadius: 6
+      }]
+    },
+    options: { indexAxis: 'y', responsive: true, plugins: { legend: { display: false } } }
   });
 });
 </script>
