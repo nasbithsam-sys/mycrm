@@ -5,6 +5,7 @@ import pyotp
 from datetime import datetime, date, timedelta
 from functools import wraps
 from sqlalchemy import func, desc
+from urllib.parse import urlsplit, urlunsplit, parse_qsl, urlencode
 
 
 from flask import (
@@ -56,9 +57,13 @@ app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(hours=3)  # auto logout aft
 # ---------------------------
 db_url = os.environ.get("DATABASE_URL", "sqlite:///crm.db").replace("postgres://", "postgresql://")
 
-# ✅ Add SSL mode if using Postgres (for Render/Supabase)
-if "sslmode" not in db_url and db_url.startswith("postgresql"):
-    db_url += "?sslmode=require"
+# ✅ Add SSL mode if using Postgres (for Render/Supabase), preserving existing query params
+if db_url.startswith("postgresql") and "sslmode=" not in db_url:
+    u = urlsplit(db_url)
+    q = dict(parse_qsl(u.query))
+    q["sslmode"] = "require"
+    db_url = urlunsplit((u.scheme, u.netloc, u.path, urlencode(q), u.fragment))
+
 
 app.config["SQLALCHEMY_DATABASE_URI"] = db_url
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
@@ -316,7 +321,7 @@ def leads():
         main_area = request.form["main_area"]
         second_main_area = request.form.get("second_main_area", "")
         sub_location = request.form.get("sub_location", "")
-        added_by = request.form["added_by"].strip()
+        added_by = current_user.username  # enforce server-side; ignore spoofed form value
 
         # ----------------------------
         # 2️⃣ Create new lead instance
@@ -551,7 +556,7 @@ def resolve_lead(lead_id):
     flash("✅ Lead resolved successfully! Status changed to 'Updated'.", "success")
     return redirect(url_for("dashboard"))
 
-@app.route("/update_status/<int:lead_id>", methods=["POST"])
+@app.route("/update_status/<int:lead_id>", methods=["POST", "GET"])
 @login_required
 def update_status(lead_id):
     lead = Lead.query.get_or_404(lead_id)
@@ -561,8 +566,19 @@ def update_status(lead_id):
         flash("⚠️ You are not allowed to update this lead.", "danger")
         return redirect(request.referrer or url_for("dashboard"))
 
-    new_status = request.form.get("status", "").strip()
-    origin = request.form.get("origin", "").strip()
+    # Accept both POST (forms) and GET (quick links)
+    if request.method == "POST":
+        new_status = (request.form.get("status") or "").strip()
+        origin     = (request.form.get("origin") or "").strip()
+    else:
+        new_status = (request.args.get("status") or "").strip()
+        origin     = (request.args.get("origin") or "").strip()
+
+    # If origin not provided, guess from referrer (default to my_leads)
+    if not origin:
+       ref = (request.referrer or "").lower()
+       origin = "all_leads" if "/view_leads" in ref else "my_leads"
+
 
     # ---------------------------
     # From "My Leads" Page
@@ -756,7 +772,7 @@ def dashboard():
         ).count()
         resolved_today = Lead.query.filter(
             Lead.status == 'Done',
-            db.func.date(Lead.created_at) == date.today(),
+            db.func.date(Lead.closed_at) == date.today(),
             Lead.added_by == current_user.username
         ).count()
 
@@ -1084,10 +1100,10 @@ def export_closed_leads():
         start_date = (datetime.now() - timedelta(days=7)).strftime("%Y-%m-%d")
 
     start = datetime.strptime(start_date, "%Y-%m-%d")
-    end = datetime.strptime(end_date, "%Y-%m-%d")
+    end = datetime.strptime(end_date, "%Y-%m-%d") + timedelta(days=1)
 
     # Query leads that were closed in that period
-    query = Lead.query.options(joinedload(Lead.closed_by_user)).filter_by(status="Done")
+    query = Lead.query.options(joinedload(Lead.closed_by_user)).filter_by(status="Done", archived=False)
     query = query.filter(Lead.closed_at.between(start, end))
     leads = query.all()
 
@@ -1182,7 +1198,7 @@ def export_closed_leads():
 def archive_all_closed():
     closed_leads = Lead.query.filter_by(status="Done", archived=False).all()
     for lead in closed_leads:
-        lead.archived = True
+        lead.archived = False
     db.session.commit()
     flash("📦 All closed leads have been archived successfully!", "success")
     return redirect(url_for("closed_leads"))
@@ -1232,6 +1248,15 @@ def delete_lead(lead_id):
 @login_required
 def delete_user(user_id):
     user_to_delete = User.query.get_or_404(user_id)
+    # Prevent deleting users with linked leads (avoids FK errors)
+    linked = Lead.query.filter(
+        (Lead.user_id == user_to_delete.id) |
+        (Lead.assigned_to == user_to_delete.id) |
+        (Lead.closed_by == user_to_delete.id)
+    ).limit(1).count()
+    if linked:
+        flash("⚠️ Cannot delete user with linked leads. Reassign or archive their leads first.", "warning")
+        return redirect(url_for("users"))
     if current_user.role == "admin":
         if current_user.id == user_to_delete.id:
             flash("⚠️ Admins cannot delete their own account.", "warning")
