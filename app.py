@@ -55,18 +55,27 @@ app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(hours=3)  # auto logout aft
 # ---------------------------
 # Database Config
 # ---------------------------
-db_url = os.environ.get("DATABASE_URL", "sqlite:///crm.db").replace("postgres://", "postgresql://")
+raw_url = os.environ.get("DATABASE_URL")
 
-# ✅ Add SSL mode if using Postgres (for Render/Supabase), preserving existing query params
+# ❌ Do NOT run without a real Postgres URL
+if not raw_url:
+    raise RuntimeError("DATABASE_URL is not set – refusing to start without Postgres (Nhost)")
+
+# Normalize old "postgres://" URLs to "postgresql://"
+db_url = raw_url.replace("postgres://", "postgresql://")
+
+# ✅ Add SSL mode if using Postgres (for Render/Nhost), preserving existing query params
 if db_url.startswith("postgresql") and "sslmode=" not in db_url:
     u = urlsplit(db_url)
     q = dict(parse_qsl(u.query))
     q["sslmode"] = "require"
     db_url = urlunsplit((u.scheme, u.netloc, u.path, urlencode(q), u.fragment))
 
+print("DB_URL in use:", db_url)  # log what DB URL is actually used
 
 app.config["SQLALCHEMY_DATABASE_URI"] = db_url
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+
 
 # ---------------------------
 # File Upload Config
@@ -1326,9 +1335,10 @@ NHOST_ADMIN_SECRET = os.getenv("NHOST_ADMIN_SECRET")  # your admin secret
 
 def _ping_nhost():
     if not (NHOST_GRAPHQL and NHOST_ADMIN_SECRET):
+        print("Nhost keepalive skipped: env vars missing")
         return
     try:
-        requests.post(
+        r = requests.post(
             NHOST_GRAPHQL,
             headers={
                 "Content-Type": "application/json",
@@ -1337,8 +1347,10 @@ def _ping_nhost():
             json={"query": "query { __typename }"},
             timeout=5,
         )
-    except Exception:
-        pass
+        print("Nhost keepalive status:", r.status_code)
+    except Exception as e:
+        print("Nhost keepalive error:", e)
+
 
 def start_nhost_keepalive(interval_sec: int = 600):
     """Ping Nhost every `interval_sec` seconds (daemon thread)."""
